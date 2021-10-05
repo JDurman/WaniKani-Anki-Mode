@@ -31,7 +31,7 @@ var checkerNo = function (itemType, correctValue) {
 var activated = false;
 var answerShown = false;
 var firstCorrectAnswer = "";
-
+var secondNoTriggered = false;
 //AUTOSTART
 var autostart = false;
 
@@ -201,17 +201,17 @@ var WKANKIMODE_answerYes = function () {
 
 var WKANKIMODE_answerNo = function () {
 
-    //fix for doublecheck
-    if (window.doublecheck) {
-        var questionType = $.jStorage.get("questionType");
-        if (questionType === 'meaning') {
-            $("#user-response").val('xxxxxx');
-        } else {
-            $("#user-response").val('。。。');
-        }
-    }
-
     if (answerShown) {
+        //fix for doublecheck
+        if (window.doublecheck) {
+            var questionType = $.jStorage.get("questionType");
+            if (questionType === 'meaning') {
+                $("#user-response").val('xxxxxx');
+            } else {
+                $("#user-response").val('。。。');
+            }
+        }
+
         answerChecker.evaluate = checkerNo;
         $("#answer-form form button").click();
         answerShown = false;
@@ -221,13 +221,19 @@ var WKANKIMODE_answerNo = function () {
 
     if ($("#answer-form form fieldset").hasClass("correct") ||
         $("#answer-form form fieldset").hasClass("incorrect")) {
-        $("#answer-form form button").click();
-        WKANKIMODE_hideAnswerButtons();
-        const event = $.Event('keyup'); //simulate a enter press so we move to the next item
-        event.which = 13;
-        event.keyCode = 13;
-        //this.$('#answer-form form').focus();
-        this.$('#answer-form form').trigger(event);
+        if (window.doublecheck) {
+            if (!secondNoTriggered) {
+                secondNoTriggered = true;
+                setTimeout(function () {
+                    $("#answer-form form button").click();
+                    WKANKIMODE_hideAnswerButtons();
+                    secondNoTriggered = false;
+                }, 1.5 * 1000); //doublecheck default delay for wrong answers before you can submit
+            }
+        } else {
+            $("#answer-form form button").click();
+            WKANKIMODE_hideAnswerButtons();
+        }
     }
 
 };
