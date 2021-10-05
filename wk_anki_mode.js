@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wanikani Anki Mode
 // @namespace    wanikani_anki_mode
-// @version      1.8.0
+// @version      1.8.1
 // @description  Anki mode for Wanikani; DoubleCheck 2.0 Support; Modified to show Anki buttons below character & answer field so that your hand doesn't hide that information. Uses two states for the button: either one large "Show Answer" button or two "Know"/"Don't Know" buttons so that you don't have to move your finger anywhere in case you got an answer correct.  You can also use "K" as the shortcut for "Know" (oKAY, I *K*now this) and "L" as the shortcut for "Don't know" (as in "this time, I *L*ose"). 
 // @author       JDurman
 // @match        https://www.wanikani.com/review/session*
@@ -223,6 +223,11 @@ var WKANKIMODE_answerNo = function () {
         $("#answer-form form fieldset").hasClass("incorrect")) {
         $("#answer-form form button").click();
         WKANKIMODE_hideAnswerButtons();
+        const event = $.Event('keyup'); //simulate a enter press so we move to the next item
+        event.which = 13;
+        event.keyCode = 13;
+        //this.$('#answer-form form').focus();
+        this.$('#answer-form form').trigger(event);
     }
 
 };
@@ -288,7 +293,7 @@ function addStyle(aCss) {
         style = document.createElement('style');
         style.setAttribute('type', 'text/css');
         style.textContent = aCss;
-        if(window.doublecheck){
+        if (window.doublecheck) {
             style.textContent += doubleCheckCssModify;
         }
         head.appendChild(style);
@@ -378,7 +383,7 @@ var autostartFeature = function () {
 
 var bindHotkeys = function () {
     if (window.doublecheck) {
-        $('body').on('click', '#option-retype', function(event) {
+        $('body').on('click', '#option-retype', function (event) {
             if (activated) {
                 $("#user-response").val('');
                 answerShown = false;
@@ -394,7 +399,7 @@ var bindHotkeys = function () {
                 //key: enter
                 case 13:
                     if ($("#answer-form form fieldset").hasClass("correct") ||
-                    $("#answer-form form fieldset").hasClass("incorrect")) {                   
+                        $("#answer-form form fieldset").hasClass("incorrect")) {
                         WKANKIMODE_hideAnswerButtons();
                     }
                     return;
@@ -429,8 +434,8 @@ var bindHotkeys = function () {
 
                     return;
                     break;
-                 //key: "2" like as in wrong
-                 case 50:
+                //key: "2" like as in wrong
+                case 50:
 
                     event.stopPropagation();
                     event.preventDefault();
