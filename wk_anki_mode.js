@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wanikani Anki Mode
 // @namespace    wanikani_anki_mode
-// @version      1.8.2
+// @version      1.8.3
 // @description  Anki mode for Wanikani; DoubleCheck 2.0 Support; Modified to show Anki buttons below character & answer field so that your hand doesn't hide that information. Uses two states for the button: either one large "Show Answer" button or two "Know"/"Don't Know" buttons so that you don't have to move your finger anywhere in case you got an answer correct.  You can also use "K" as the shortcut for "Know" (oKAY, I *K*now this) and "L" as the shortcut for "Don't know" (as in "this time, I *L*ose"). 
 // @author       JDurman
 // @match        https://www.wanikani.com/review/session*
@@ -15,7 +15,17 @@
 //Original author: Oleg Grishin <og402@nyu.edu>
 
 console.log('/// Start of Wanikani Anki Mode');
+            
+//If you want to add or change a key for correct or incorrect behavior you can use this chart to grab the number code for the key.
+//http://gcctech.org/csc/javascript/javascript_keycodes.htm
 
+//75 = "K" (like "oKAY, I got this")      
+//49 = "1" as in yes      
+var correctKeyCodes = [75,49];
+
+//76 = "L" like "loser" (sorry, you are not a loser! It's all for the sake of the mnemonics)
+//50 = "2" like as in wrong                 
+var incorrectKeyCodes = [76,50];
 
 // Save the original evaluator
 var originalChecker = answerChecker.evaluate;
@@ -419,49 +429,7 @@ var bindHotkeys = function () {
                         WKANKIMODE_showAnswer();
 
                     return;
-                    break;
-                //key: "K" (like "oKAY, I got this")
-                case 75:
-                    event.stopPropagation();
-                    event.preventDefault();
-
-                    if (activated)
-                        WKANKIMODE_answerYes();
-
-                    return;
-                    break;
-                //key: "1" as in yes
-                case 49:
-                    event.stopPropagation();
-                    event.preventDefault();
-
-                    if (activated)
-                        WKANKIMODE_answerYes();
-
-                    return;
-                    break;
-                //key: "2" like as in wrong
-                case 50:
-
-                    event.stopPropagation();
-                    event.preventDefault();
-
-                    if (activated)
-                        WKANKIMODE_answerNo();
-
-                    return;
-                    break;
-                //key: "L" like "loser" (sorry, you are not a loser! It's all for the sake of the mnemonics)
-                case 76:
-
-                    event.stopPropagation();
-                    event.preventDefault();
-
-                    if (activated)
-                        WKANKIMODE_answerNo();
-
-                    return;
-                    break;
+                    break;                   
                 case 27: //key: escape (only needed when doublecheck is active)
                     if (activated) {
                         if (window.doublecheck) {
@@ -482,6 +450,29 @@ var bindHotkeys = function () {
                             WKANKIMODE_hideAnswerButtons();
                         }
                     }
+                    return;
+                    break;
+                default:
+                    if(correctKeyCodes.includes(event.keyCode)){
+                        event.stopPropagation();
+                        event.preventDefault();
+    
+                        if (activated)
+                            WKANKIMODE_answerYes();
+    
+                        return;
+                        break;
+                    }else if(incorrectKeyCodes.includes(event.keyCode)){
+                        event.stopPropagation();
+                        event.preventDefault();
+    
+                        if (activated)
+                            WKANKIMODE_answerNo();
+    
+                        return;
+                        break;
+                    }
+                    
                     return;
                     break;
             }
