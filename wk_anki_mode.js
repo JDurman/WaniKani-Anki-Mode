@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wanikani Anki Mode
 // @namespace    wanikani_anki_mode
-// @version      1.8.3
+// @version      1.8.4
 // @description  Anki mode for Wanikani; DoubleCheck 2.0 Support; Modified to show Anki buttons below character & answer field so that your hand doesn't hide that information. Uses two states for the button: either one large "Show Answer" button or two "Know"/"Don't Know" buttons so that you don't have to move your finger anywhere in case you got an answer correct.  You can also use "K" as the shortcut for "Know" (oKAY, I *K*now this) and "L" as the shortcut for "Don't know" (as in "this time, I *L*ose"). 
 // @author       JDurman
 // @match        https://www.wanikani.com/review/session*
@@ -218,7 +218,7 @@ var WKANKIMODE_answerNo = function () {
             if (questionType === 'meaning') {
                 $("#user-response").val('xxxxxx');
             } else {
-                $("#user-response").val('。。。');
+                $("#user-response").val('ばつっっっ');
             }
         }
 
