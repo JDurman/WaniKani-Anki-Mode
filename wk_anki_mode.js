@@ -275,9 +275,8 @@ window.ankimode = {};
             return;
         }
 
-        // if answer is shown, press '1' one more time to go to next
-        if ($("#answer-form form fieldset").hasClass("correct") ||
-            $("#answer-form form fieldset").hasClass("incorrect")) {
+        // if answer is shown, press correct hotkey one more time to go to next
+        if ($("#answer-form form fieldset").hasClass("correct")) {
             $("#answer-form form button").click();
             hideAnswerButtons();
         }
@@ -302,8 +301,7 @@ window.ankimode = {};
             return;
         }
 
-        if ($("#answer-form form fieldset").hasClass("correct") ||
-            $("#answer-form form fieldset").hasClass("incorrect")) {
+        if ($("#answer-form form fieldset").hasClass("incorrect")) {
             if (window.doublecheck) {
                 if (!secondNoTriggered) {
                     secondNoTriggered = true;
@@ -311,7 +309,7 @@ window.ankimode = {};
                         $("#answer-form form button").click();
                         hideAnswerButtons();
                         secondNoTriggered = false;
-                    }, settings.doublecheck_delay_period * 1000); //doublecheck default delay for wrong answers before you can submit
+                    }, settings.doublecheck_delay_period * 1000); //needs to match the doublecheck delay period. Otherwise it wont allow the question to continue.
                 }
             } else {
                 $("#answer-form form button").click();
