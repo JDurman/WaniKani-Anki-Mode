@@ -23,7 +23,6 @@ window.ankimode = {};
     wkof.ready('document,Menu,Settings').then(setup);
 
     var settings;
-    var activated = false;
     var answerShown = false;
     var firstCorrectAnswer = "";
     var secondNoTriggered = false;
@@ -106,7 +105,7 @@ window.ankimode = {};
             startup();
         }
 
-        // Migrate 'Anki Mode State' setting from localStorage.
+        // Get 'Anki Mode State' setting from localStorage.
         var ankimodestate = localStorage.getItem('ankimodestate');
         if (ankimodestate === 'false' || ankimodestate === 'true') {
             localStorage.removeItem('ankimodestate');
@@ -173,7 +172,7 @@ window.ankimode = {};
 
         if (window.doublecheck) {
             $('body').on('click', '#option-retype', function (event) {
-                if (activated) {
+                if (settings.ankimode_enabled) {
                     $("#user-response").val('');
                     answerShown = false;
                     hideAnswerButtons();
@@ -200,7 +199,6 @@ window.ankimode = {};
     }
 
     function ankimode_start() {
-        activated = true;
         $('#user-response').focus(function (e) {
             $(this).blur();
         });
@@ -213,7 +211,6 @@ window.ankimode = {};
     }
 
     function ankimode_stop() {
-        activated = false;
         //remove event listeners
         $("#user-response").off("focus");
 
@@ -338,7 +335,7 @@ window.ankimode = {};
     function bindHotkeys() {
         $('body').on("keydown", function (event) {
 
-            if ($("#reviews").is(":visible") && !$("*:focus").is("textarea, input")) {
+            if ($("#reviews").is(":visible") && !$("*:focus").is("textarea, input") && settings.ankimode_enabled) {
                 switch (event.keyCode) {
                     //key: enter
                     case 13:
@@ -353,30 +350,24 @@ window.ankimode = {};
                         event.stopPropagation();
                         event.preventDefault();
 
-                        if (activated)
-                            showAnswer();
+                        showAnswer();
 
                         return;
                         break;
                     case 27: //key: escape (only needed when doublecheck is active)
-                        if (activated) {
-                            if (window.doublecheck) {
-                                $("#user-response").val('');
-                                answerShown = false;
-                                hideAnswerButtons();
-                            }
-
+                        if (window.doublecheck) {
+                            $("#user-response").val('');
+                            answerShown = false;
+                            hideAnswerButtons();
                         }
 
                         return;
                         break;
                     case 8: //key: backspace (only needed when doublecheck is active)
-                        if (activated) {
-                            if (window.doublecheck) {
-                                $("#user-response").val('');
-                                answerShown = false;
-                                hideAnswerButtons();
-                            }
+                        if (window.doublecheck) {
+                            $("#user-response").val('');
+                            answerShown = false;
+                            hideAnswerButtons();
                         }
                         return;
                         break;
@@ -385,8 +376,7 @@ window.ankimode = {};
                             event.stopPropagation();
                             event.preventDefault();
 
-                            if (activated)
-                                answerCorrect();
+                            answerCorrect();
 
                             return;
                             break;
@@ -394,8 +384,7 @@ window.ankimode = {};
                             event.stopPropagation();
                             event.preventDefault();
 
-                            if (activated)
-                                answerIncorrect();
+                            answerIncorrect();
 
                             return;
                             break;
