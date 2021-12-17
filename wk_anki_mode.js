@@ -43,8 +43,8 @@ window.ankimode = {};
         wkof.Menu.insert_script_link({ name: 'ankimode', submenu: 'Settings', title: 'Anki Mode', on_click: open_settings });
 
         var defaults = {
-            correct_hotkey: '1',
-            incorrect_hotkey: '2',
+            correct_hotkey: 'Digit1',
+            incorrect_hotkey: 'Digit2',
             doublecheck_delay_period: 1.5,
         }
         return wkof.Settings.load('ankimode', defaults).then(init_ui.bind(null, true /* first_time */));
@@ -61,8 +61,8 @@ window.ankimode = {};
                     type: 'page', label: 'Hotkeys', content: {
                         grpHotkeys: {
                             type: 'group', label: 'Hotkeys', content: {
-                                correct_hotkey: { type: 'text', label: 'Marks answer correct', default: true, hover_tip: 'Use only a single digit number or letter.', validate: validateHotkey, on_change: function (name, value, config) { settings.correct_hotkey = value.toUpperCase(); } },
-                                incorrect_hotkey: { type: 'text', label: 'Marks answer "incorrect"', default: true, hover_tip: 'Use only a single digit number or letter.', validate: validateHotkey, on_change: function (name, value, config) { settings.incorrect_hotkey = value.toUpperCase(); } },
+                                correct_hotkey: { type: 'text', label: 'Marks answer correct', default: true, placeholder: 'Please press the desired key', hover_tip: 'Use only a single digit number or letter.', validate: validateHotkey },
+                                incorrect_hotkey: { type: 'text', label: 'Marks answer "incorrect"', default: true, placeholder: 'Please press the desired key', hover_tip: 'Use only a single digit number or letter.', validate: validateHotkey },
                             }
                         },
                     }
@@ -92,8 +92,33 @@ window.ankimode = {};
         }
     }
 
+    function formatKeyCode(value){
+        return value.replace('Digit','').replace('Key','');
+    }
+
     function settings_preopen(dialog) {
         dialog.dialog({ width: 525 });
+        $("#ankimode_dialog #ankimode_correct_hotkey").attr("type", 'hidden');
+        $("#ankimode_dialog #ankimode_correct_hotkey").after('<input id="ankimode_correct_hotkey_readonly" class="setting" type="text" placeholder="Please press the desired key" readonly="readonly" value="' + formatKeyCode(settings.correct_hotkey) + '"></input>')
+        $("#ankimode_dialog #ankimode_incorrect_hotkey").attr("type", 'hidden');
+        $("#ankimode_dialog #ankimode_incorrect_hotkey").after('<input id="ankimode_incorrect_hotkey_readonly" class="setting" type="text" placeholder="Please press the desired key" readonly="readonly" value="' + formatKeyCode(settings.incorrect_hotkey) + '"></input>')
+
+        $("#ankimode_dialog #ankimode_correct_hotkey_readonly").on('click', function () {
+            $(this).val('');
+            $(this).on("keydown", function (event) {
+                $("#ankimode_dialog #ankimode_correct_hotkey").val(event.originalEvent.code);    
+                $(this).val(formatKeyCode(event.originalEvent.code)).blur();              
+            });
+        });
+
+        $("#ankimode_dialog #ankimode_incorrect_hotkey_readonly").on('click', function () {
+            $(this).val('');
+            $(this).on("keydown", function (event) {
+                $("#ankimode_dialog #ankimode_incorrect_hotkey").val(event.originalEvent.code);
+                $(this).val(formatKeyCode(event.originalEvent.code)).blur();
+               
+            });
+        });
     }
 
     var first_time = true;
@@ -103,6 +128,10 @@ window.ankimode = {};
         if (first_time) {
             first_time = false;
             startup();
+        }else{
+            settings.correct_hotkey = $("#ankimode_dialog #ankimode_correct_hotkey").val();
+            settings.incorrect_hotkey = $("#ankimode_dialog #ankimode_incorrect_hotkey").val();
+            wkof.Settings.save('ankimode');
         }
 
         // Get 'Anki Mode State' setting from localStorage.
@@ -370,7 +399,7 @@ window.ankimode = {};
                         return;
                         break;
                     default:
-                        if (settings.correct_hotkey.charCodeAt(0) == event.keyCode) {
+                        if (settings.correct_hotkey == event.originalEvent.code) {
                             event.stopPropagation();
                             event.preventDefault();
 
@@ -378,7 +407,7 @@ window.ankimode = {};
 
                             return;
                             break;
-                        } else if (settings.incorrect_hotkey.charCodeAt(0) == event.keyCode) {
+                        } else if (settings.incorrect_hotkey == event.originalEvent.code) {
                             event.stopPropagation();
                             event.preventDefault();
 
