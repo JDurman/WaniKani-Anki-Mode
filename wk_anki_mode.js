@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wanikani Anki Mode
 // @namespace    wanikani_anki_mode
-// @version      2.0
+// @version      2.0.1
 // @description  Anki mode for Wanikani; DoubleCheck 2.0 Support;
 // @author       JDurman
 // @include     /^https://(www|preview).wanikani.com/review/session/
@@ -45,6 +45,7 @@ window.ankimode = {};
         var defaults = {
             correct_hotkey: 'Digit1',
             incorrect_hotkey: 'Digit2',
+            showAnswer_hotkey: 'Space',
             doublecheck_delay_period: 1.5,
         }
         return wkof.Settings.load('ankimode', defaults).then(init_ui.bind(null, true /* first_time */));
@@ -61,8 +62,9 @@ window.ankimode = {};
                     type: 'page', label: 'Hotkeys', content: {
                         grpHotkeys: {
                             type: 'group', label: 'Hotkeys', content: {
-                                correct_hotkey: { type: 'text', label: 'Marks answer correct', default: true, placeholder: 'Please press the desired key', hover_tip: 'Use only a single digit number or letter.', validate: validateHotkey },
-                                incorrect_hotkey: { type: 'text', label: 'Marks answer "incorrect"', default: true, placeholder: 'Please press the desired key', hover_tip: 'Use only a single digit number or letter.', validate: validateHotkey },
+                                correct_hotkey: { type: 'text', label: 'Marks answer correct', default: true, placeholder: 'Please press the desired key' },
+                                incorrect_hotkey: { type: 'text', label: 'Marks answer "incorrect"', default: true, placeholder: 'Please press the desired key' },
+                                showAnswer_hotkey: { type: 'text', label: 'Shows answer', default: true, placeholder: 'Please press the desired key' }
                             }
                         },
                     }
@@ -81,33 +83,24 @@ window.ankimode = {};
         dialog.open();
     }
 
-    function validateHotkey(value, config) {
-        if ((/^[A-Za-z0-9]{1}$/).test(value)) {
-            return true;
-        } else {
-            return {
-                valid: false,
-                msg: 'Must be a letter or single digit number'
-            }
-        }
-    }
-
-    function formatKeyCode(value){
-        return value.replace('Digit','').replace('Key','');
+    function formatKeyCode(value) {
+        return value.replace('Digit', '').replace('Key', '');
     }
 
     function settings_preopen(dialog) {
         dialog.dialog({ width: 525 });
         $("#ankimode_dialog #ankimode_correct_hotkey").attr("type", 'hidden');
-        $("#ankimode_dialog #ankimode_correct_hotkey").after('<input id="ankimode_correct_hotkey_readonly" class="setting" type="text" placeholder="Please press the desired key" readonly="readonly" value="' + formatKeyCode(settings.correct_hotkey) + '"></input>')
+        $("#ankimode_dialog #ankimode_correct_hotkey").after('<input id="ankimode_correct_hotkey_readonly" class="setting" type="text" placeholder="Please press the desired key" readonly="readonly" value="' + formatKeyCode(settings.correct_hotkey) + '"></input>');
         $("#ankimode_dialog #ankimode_incorrect_hotkey").attr("type", 'hidden');
-        $("#ankimode_dialog #ankimode_incorrect_hotkey").after('<input id="ankimode_incorrect_hotkey_readonly" class="setting" type="text" placeholder="Please press the desired key" readonly="readonly" value="' + formatKeyCode(settings.incorrect_hotkey) + '"></input>')
+        $("#ankimode_dialog #ankimode_incorrect_hotkey").after('<input id="ankimode_incorrect_hotkey_readonly" class="setting" type="text" placeholder="Please press the desired key" readonly="readonly" value="' + formatKeyCode(settings.incorrect_hotkey) + '"></input>');
+        $("#ankimode_dialog #ankimode_showAnswer_hotkey").attr("type", 'hidden');
+        $("#ankimode_dialog #ankimode_showAnswer_hotkey").after('<input id="ankimode_showAnswer_hotkey_readonly" class="setting" type="text" placeholder="Please press the desired key" readonly="readonly" value="' + formatKeyCode(settings.showAnswer_hotkey) + '"></input>');
 
         $("#ankimode_dialog #ankimode_correct_hotkey_readonly").on('click', function () {
             $(this).val('');
             $(this).on("keydown", function (event) {
-                $("#ankimode_dialog #ankimode_correct_hotkey").val(event.originalEvent.code);    
-                $(this).val(formatKeyCode(event.originalEvent.code)).blur();              
+                $("#ankimode_dialog #ankimode_correct_hotkey").val(event.originalEvent.code);
+                $(this).val(formatKeyCode(event.originalEvent.code)).blur();
             });
         });
 
@@ -116,7 +109,16 @@ window.ankimode = {};
             $(this).on("keydown", function (event) {
                 $("#ankimode_dialog #ankimode_incorrect_hotkey").val(event.originalEvent.code);
                 $(this).val(formatKeyCode(event.originalEvent.code)).blur();
-               
+
+            });
+        });
+
+        $("#ankimode_dialog #ankimode_showAnswer_hotkey_readonly").on('click', function () {
+            $(this).val('');
+            $(this).on("keydown", function (event) {
+                $("#ankimode_dialog #ankimode_showAnswer_hotkey").val(event.originalEvent.code);
+                $(this).val(formatKeyCode(event.originalEvent.code)).blur();
+
             });
         });
     }
@@ -128,9 +130,10 @@ window.ankimode = {};
         if (first_time) {
             first_time = false;
             startup();
-        }else{
+        } else {
             settings.correct_hotkey = $("#ankimode_dialog #ankimode_correct_hotkey").val();
             settings.incorrect_hotkey = $("#ankimode_dialog #ankimode_incorrect_hotkey").val();
+            settings.showAnswer_hotkey = $("#ankimode_dialog #ankimode_showAnswer_hotkey").val();
             wkof.Settings.save('ankimode');
         }
 
@@ -371,16 +374,7 @@ window.ankimode = {};
                             hideAnswerButtons();
                         }
                         return;
-                        break;
-                    //key: Space
-                    case 32:
-                        event.stopPropagation();
-                        event.preventDefault();
-
-                        showAnswer();
-
-                        return;
-                        break;
+                        break;                       
                     case 27: //key: escape (only needed when doublecheck is active)
                         if (window.doublecheck) {
                             $("#user-response").val('');
@@ -399,7 +393,7 @@ window.ankimode = {};
                         return;
                         break;
                     default:
-                        if (settings.correct_hotkey == event.originalEvent.code) {
+                         if (settings.correct_hotkey == event.originalEvent.code) {
                             event.stopPropagation();
                             event.preventDefault();
 
@@ -412,6 +406,14 @@ window.ankimode = {};
                             event.preventDefault();
 
                             answerIncorrect();
+
+                            return;
+                            break;
+                        }else if (settings.showAnswer_hotkey == event.originalEvent.code) {
+                            event.stopPropagation();
+                            event.preventDefault();
+
+                            showAnswer();
 
                             return;
                             break;
