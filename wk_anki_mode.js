@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Wanikani Anki Mode
-// @namespace    wanikani_anki_mode
+// @namespace    wkankimode
 // @version      2.0.1
 // @description  Anki mode for Wanikani; DoubleCheck 2.0 Support;
 // @author       JDurman
