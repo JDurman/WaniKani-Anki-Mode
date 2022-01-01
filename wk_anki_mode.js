@@ -294,12 +294,12 @@ window.ankimode = {};
 
     function answerCorrect() {
         // Fix for multiple answers in reading
-        if (firstCorrectAnswer) {
-            $("#user-response").val(firstCorrectAnswer);
-            firstCorrectAnswer = "";
-        }
-
         if (answerShown) {
+            if (firstCorrectAnswer) {
+                $("#user-response").val(firstCorrectAnswer);
+                firstCorrectAnswer = "";
+            }
+
             answerChecker.evaluate = checkerYes;
             $("#answer-form form button").click();
             answerShown = false;
@@ -374,7 +374,7 @@ window.ankimode = {};
                             hideAnswerButtons();
                         }
                         return;
-                        break;                       
+                        break;
                     case 27: //key: escape (only needed when doublecheck is active)
                         if (window.doublecheck) {
                             $("#user-response").val('');
@@ -393,7 +393,7 @@ window.ankimode = {};
                         return;
                         break;
                     default:
-                         if (settings.correct_hotkey == event.originalEvent.code) {
+                        if (settings.correct_hotkey == event.originalEvent.code) {
                             event.stopPropagation();
                             event.preventDefault();
 
@@ -409,7 +409,7 @@ window.ankimode = {};
 
                             return;
                             break;
-                        }else if (settings.showAnswer_hotkey == event.originalEvent.code) {
+                        } else if (settings.showAnswer_hotkey == event.originalEvent.code) {
                             event.stopPropagation();
                             event.preventDefault();
 
