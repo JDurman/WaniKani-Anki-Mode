@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wanikani Anki Mode
 // @namespace    wkankimode
-// @version      2.0.1
+// @version      2.1.0
 // @description  Anki mode for Wanikani; DoubleCheck 2.0 Support;
 // @author       JDurman
 // @include     /^https://(www|preview).wanikani.com/review/session/
@@ -194,6 +194,14 @@ window.ankimode = {};
             .prependTo("#WKANKIMODE_buttons");
 
         $("<div />", {
+            id: "WKANKIMODE_anki_next"
+        })
+            .text("Next")
+            .addClass("WKANKIMODE_button next")
+            .on("click", nextAnswer)
+            .prependTo("#WKANKIMODE_buttons");
+
+        $("<div />", {
             id: "WKANKIMODE_anki_correct",
             title: "Shortcut: K",
         })
@@ -240,6 +248,7 @@ window.ankimode = {};
         $(".WKANKIMODE_button.correct").hide();
         $(".WKANKIMODE_button.incorrect").hide();
         $(".WKANKIMODE_button.show").show();
+        $('.WKANKIMODE_button.next').hide();
     }
 
     function ankimode_stop() {
@@ -250,6 +259,7 @@ window.ankimode = {};
         $(".WKANKIMODE_button.correct").hide();
         $(".WKANKIMODE_button.incorrect").hide();
         $(".WKANKIMODE_button.show").hide();
+        $(".WKANKIMODE_button.next").hide();
 
         $("#user-response").focus();
 
@@ -292,6 +302,14 @@ window.ankimode = {};
         }
     }
 
+    function nextAnswer() {
+        if ($("#answer-form form fieldset").hasClass("correct")) {
+            answerCorrect();
+        } else if ($("#answer-form form fieldset").hasClass("incorrect")) {
+            answerIncorrect();
+        }
+    }
+
     function answerCorrect() {
         // Fix for multiple answers in reading
         if (answerShown) {
@@ -304,6 +322,7 @@ window.ankimode = {};
             $("#answer-form form button").click();
             answerShown = false;
             answerChecker.evaluate = originalChecker;
+            showNextButton();
             return;
         }
 
@@ -330,6 +349,7 @@ window.ankimode = {};
             $("#answer-form form button").click();
             answerShown = false;
             answerChecker.evaluate = originalChecker;
+            showNextButton();
             return;
         }
 
@@ -354,12 +374,21 @@ window.ankimode = {};
         $(".WKANKIMODE_button.correct").hide();
         $(".WKANKIMODE_button.incorrect").hide();
         $(".WKANKIMODE_button.show").show();
+        $(".WKANKIMODE_button.next").hide();
     }
 
     function showAnswerButtons() {
         $(".WKANKIMODE_button.correct").show();
         $(".WKANKIMODE_button.incorrect").show();
         $(".WKANKIMODE_button.show").hide();
+        $(".WKANKIMODE_button.next").hide();
+    }
+
+    function showNextButton(){
+        $(".WKANKIMODE_button.correct").hide();
+        $(".WKANKIMODE_button.incorrect").hide();
+        $(".WKANKIMODE_button.show").hide();
+        $(".WKANKIMODE_button.next").show();
     }
 
     function bindHotkeys() {
@@ -466,6 +495,10 @@ window.ankimode = {};
 .WKANKIMODE_buttons .show { \
 background-color: #0af; \
 width:100%;\
+} \
+.WKANKIMODE_buttons .next { \
+    background-color: #363636; \
+    width:100%;\
 } \
 #WKANKIMODE_anki.hidden { \
 display: none; \
