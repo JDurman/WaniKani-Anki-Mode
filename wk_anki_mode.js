@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wanikani Anki Mode
 // @namespace    wkankimode
-// @version      2.2.0
+// @version      2.2.1
 // @description  Anki mode for Wanikani; DoubleCheck 2.0 Support;
 // @author       JDurman
 // @include     /^https://(www|preview).wanikani.com/review/session/
@@ -153,9 +153,11 @@ window.ankimode = {};
                     //show spoofed input
                     $('#user-response').hide();
                     $('#WKANKIMODE_answer_input').show();
+                    $('#answer-form button').hide();    
                 } else {
                     $("#WKANKIMODE_answer_input").remove();
                     $('#user-response').show();
+                    $('#answer-form button').show();    
                 }
 
                 $('#user-response,#WKANKIMODE_answer_input').focus(function (e) {
@@ -272,6 +274,7 @@ window.ankimode = {};
 
         if (settings.show_multiple_readings) {
             $('#user-response').clone().attr('id', 'WKANKIMODE_answer_input').attr('name', 'WKANKIMODE_answer_input').attr('placeholder', "Your Response").removeAttr("data-wanakana-id lang").insertAfter("#user-response").hide();
+            $('#answer-form button').hide();
 
             //show spoofed input
             $('#user-response').hide();
@@ -293,8 +296,7 @@ window.ankimode = {};
     function ankimode_stop() {
         //remove event listeners
         $("#user-response").off("focus");
-        $("#WKANKIMODE_answer_input").remove();
-
+       
         //hide anki mode buttons
         $(".WKANKIMODE_button.correct").hide();
         $(".WKANKIMODE_button.incorrect").hide();
@@ -305,6 +307,12 @@ window.ankimode = {};
 
         if (!$("#answer-form form fieldset").hasClass("correct") && !$("#answer-form form fieldset").hasClass("incorrect")) {
             $("#user-response").val("");
+        }
+
+        if (settings.show_multiple_readings) {
+            $("#WKANKIMODE_answer_input").remove();
+            $('#user-response').show();
+            $('#answer-form button').show();           
         }
     }
 
