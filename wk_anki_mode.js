@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wanikani Anki Mode
 // @namespace    wkankimode
-// @version      2.2.1
+// @version      2.2.2
 // @description  Anki mode for Wanikani; DoubleCheck 2.0 Support;
 // @author       JDurman
 // @include     /^https://(www|preview).wanikani.com/review/session/
@@ -152,12 +152,10 @@ window.ankimode = {};
 
                     //show spoofed input
                     $('#user-response').hide();
-                    $('#WKANKIMODE_answer_input').show();
-                    $('#answer-form button').hide();    
+                    $('#WKANKIMODE_answer_input').show();                     
                 } else {
                     $("#WKANKIMODE_answer_input").remove();
-                    $('#user-response').show();
-                    $('#answer-form button').show();    
+                    $('#user-response').show();  
                 }
 
                 $('#user-response,#WKANKIMODE_answer_input').focus(function (e) {
@@ -273,14 +271,14 @@ window.ankimode = {};
     function ankimode_start() {
 
         if (settings.show_multiple_readings) {
-            $('#user-response').clone().attr('id', 'WKANKIMODE_answer_input').attr('name', 'WKANKIMODE_answer_input').attr('placeholder', "Your Response").removeAttr("data-wanakana-id lang").insertAfter("#user-response").hide();
-            $('#answer-form button').hide();
+            $('#user-response').clone().attr('id', 'WKANKIMODE_answer_input').attr('name', 'WKANKIMODE_answer_input').attr('placeholder', "Your Response").removeAttr("data-wanakana-id lang").insertAfter("#user-response").hide();           
 
             //show spoofed input
             $('#user-response').hide();
             $('#WKANKIMODE_answer_input').show();
         }
 
+        $('#answer-form button').hide();
         $('#user-response,#WKANKIMODE_answer_input').focus(function (e) {
             $(this).blur();
         });
@@ -296,7 +294,8 @@ window.ankimode = {};
     function ankimode_stop() {
         //remove event listeners
         $("#user-response").off("focus");
-       
+        $('#answer-form button').show();  
+        
         //hide anki mode buttons
         $(".WKANKIMODE_button.correct").hide();
         $(".WKANKIMODE_button.incorrect").hide();
@@ -311,8 +310,7 @@ window.ankimode = {};
 
         if (settings.show_multiple_readings) {
             $("#WKANKIMODE_answer_input").remove();
-            $('#user-response').show();
-            $('#answer-form button').show();           
+            $('#user-response').show();                     
         }
     }
 
@@ -379,7 +377,18 @@ window.ankimode = {};
             $("#answer-form form button").click();
             answerShown = false;
             answerChecker.evaluate = originalChecker;
-            showNextButton();
+
+            //if lightning mode then move on to the next answer if not then show next button
+            if($("#lightning-mode.doublecheck-active").length > 0){
+                hideAnswerButtons();
+                $("#user-response").val('');
+
+                if (settings.show_multiple_readings) {
+                    $("#WKANKIMODE_answer_input").val('');           
+                }
+            }else{
+                showNextButton();
+            }         
             return;
         }
 
@@ -411,6 +420,7 @@ window.ankimode = {};
             answerShown = false;
             answerChecker.evaluate = originalChecker;
             showNextButton();
+
             return;
         }
 
