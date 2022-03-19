@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wanikani Anki Mode
 // @namespace    wkankimode
-// @version      2.2.2
+// @version      2.2.3
 // @description  Anki mode for Wanikani; DoubleCheck 2.0 Support;
 // @author       JDurman
 // @include     /^https://(www|preview).wanikani.com/review/session/
@@ -27,6 +27,7 @@ window.ankimode = {};
     var answerShown = false;
     var firstCorrectAnswer = "";
     var secondNoTriggered = false;
+    var ankiModeEnabled = false;
 
     // Save the original evaluator
     var originalChecker = answerChecker.evaluate;
@@ -49,6 +50,7 @@ window.ankimode = {};
             showAnswer_hotkey: 'Space',
             doublecheck_delay_period: 1.5,
             show_multiple_readings: false,
+            type_readings: false,
         }
         return wkof.Settings.load('ankimode', defaults).then(init_ui.bind(null, true /* first_time */));
     }
@@ -85,6 +87,7 @@ window.ankimode = {};
                         grpDelay: {
                             type: 'group', label: 'Show Multiple Readings', content: {
                                 show_multiple_readings: { type: 'checkbox', label: 'Show Multiple Readings', default: false, hover_tip: 'Spoofs the answer input(Could cause issues)' },
+                                type_readings: { type: 'checkbox', label: 'Type Readings', default: false, hover_tip: 'Makes it so that you have to type readings' },
                             }
                         },
                     }
@@ -152,16 +155,32 @@ window.ankimode = {};
 
                     //show spoofed input
                     $('#user-response').hide();
-                    $('#WKANKIMODE_answer_input').show();                     
+                    $('#WKANKIMODE_answer_input').show();
                 } else {
                     $("#WKANKIMODE_answer_input").remove();
-                    $('#user-response').show();  
+                    $('#user-response').show();
                 }
 
                 $('#user-response,#WKANKIMODE_answer_input').focus(function (e) {
-                    $(this).blur();
+                    //If type reading feature is on and the question is a reading dont blur.
+                    var questionType = $.jStorage.get("questionType");
+                    if (questionType === "meaning" || !settings.type_readings) {
+                        $(this).blur();
+                    }
                 });
                 $('#user-response,#WKANKIMODE_answer_input').blur();
+            }
+
+            if (settings.type_readings) {
+                newQuestion();
+            } else {
+                if (settings.show_multiple_readings) {
+                    $('#user-response').hide();
+                    $('#WKANKIMODE_answer_input').show();
+                } else {
+                    $("#WKANKIMODE_answer_input").remove();
+                    $('#user-response').show();
+                }
             }
 
             wkof.Settings.save('ankimode');
@@ -243,9 +262,7 @@ window.ankimode = {};
         if (window.doublecheck) {
             $('body').on('click', '#option-retype', function (event) {
                 if (settings.ankimode_enabled) {
-                    $("#user-response,#WKANKIMODE_answer_input").val('');
-                    answerShown = false;
-                    hideAnswerButtons();
+                    newQuestion();
                 }
             });
         }
@@ -269,33 +286,39 @@ window.ankimode = {};
     }
 
     function ankimode_start() {
+        ankiModeEnabled = true;
 
         if (settings.show_multiple_readings) {
-            $('#user-response').clone().attr('id', 'WKANKIMODE_answer_input').attr('name', 'WKANKIMODE_answer_input').attr('placeholder', "Your Response").removeAttr("data-wanakana-id lang").insertAfter("#user-response").hide();           
+            $('#user-response').clone().attr('id', 'WKANKIMODE_answer_input').attr('name', 'WKANKIMODE_answer_input').attr('placeholder', "Your Response").removeAttr("data-wanakana-id lang").insertAfter("#user-response").hide();
 
             //show spoofed input
             $('#user-response').hide();
             $('#WKANKIMODE_answer_input').show();
         }
 
+        $.jStorage.listenKeyChange('currentItem', newQuestion)
+
         $('#answer-form button').hide();
         $('#user-response,#WKANKIMODE_answer_input').focus(function (e) {
-            $(this).blur();
+            //If type reading feature is on and the question is a reading dont blur.
+            var questionType = $.jStorage.get("questionType");
+            if (questionType === "meaning" || !settings.type_readings) {
+                $(this).blur();
+            }
         });
         $('#user-response,#WKANKIMODE_answer_input').blur();
 
-        //show anki mode buttons
-        $(".WKANKIMODE_button.correct").hide();
-        $(".WKANKIMODE_button.incorrect").hide();
-        $(".WKANKIMODE_button.show").show();
-        $('.WKANKIMODE_button.next').hide();
+        //Trigger new question to reset and check all settings for which to start on.
+        newQuestion();
     }
 
     function ankimode_stop() {
+        ankiModeEnabled = false;
+
         //remove event listeners
         $("#user-response").off("focus");
-        $('#answer-form button').show();  
-        
+        $('#answer-form button').show();
+
         //hide anki mode buttons
         $(".WKANKIMODE_button.correct").hide();
         $(".WKANKIMODE_button.incorrect").hide();
@@ -310,7 +333,39 @@ window.ankimode = {};
 
         if (settings.show_multiple_readings) {
             $("#WKANKIMODE_answer_input").remove();
-            $('#user-response').show();                     
+            $('#user-response').show();
+        }
+    }
+
+
+    //resets the state of the forms for a new question.
+    function newQuestion() {
+        if (ankiModeEnabled) {
+            secondNoTriggered = false;
+            answerShown = false;
+            hideAnswerButtons();
+            $("#user-response").val('');
+
+            if (settings.show_multiple_readings) {
+                $("#WKANKIMODE_answer_input").val('');
+            }
+
+            if (settings.type_readings) {
+                var questionType = $.jStorage.get("questionType");
+                if (questionType === "meaning") {
+                    if (settings.show_multiple_readings) {
+                        $('#user-response').hide();
+                        $('#WKANKIMODE_answer_input').show();
+                    }
+                } else {
+                    if (settings.show_multiple_readings) {
+                        $("#WKANKIMODE_answer_input").hide();
+                        $('#user-response').show();
+                    }
+                    hideButtonsForTyping();
+                    $('#user-response').focus();
+                }
+            }
         }
     }
 
@@ -379,27 +434,16 @@ window.ankimode = {};
             answerChecker.evaluate = originalChecker;
 
             //if lightning mode then move on to the next answer if not then show next button
-            if($("#lightning-mode.doublecheck-active").length > 0){
-                hideAnswerButtons();
-                $("#user-response").val('');
-
-                if (settings.show_multiple_readings) {
-                    $("#WKANKIMODE_answer_input").val('');           
-                }
-            }else{
+            if ($("#lightning-mode.doublecheck-active").length == 0) {
                 showNextButton();
-            }         
+            }
+
             return;
         }
 
         // if answer is shown, press correct hotkey one more time to go to next
         if ($("#answer-form form fieldset").hasClass("correct")) {
             $("#answer-form form button").click();
-            hideAnswerButtons();
-
-            if (settings.show_multiple_readings) {
-                $("#WKANKIMODE_answer_input").val('');           
-            }
         }
     }
 
@@ -429,25 +473,23 @@ window.ankimode = {};
                 if (!secondNoTriggered) {
                     secondNoTriggered = true;
                     setTimeout(function () {
+
                         $("#answer-form form button").click();
-                        hideAnswerButtons();
-
-                        if (settings.show_multiple_readings) {
-                            $("#WKANKIMODE_answer_input").val('');
-                        }
-
                         secondNoTriggered = false;
+
                     }, settings.doublecheck_delay_period * 1000); //needs to match the doublecheck delay period. Otherwise it wont allow the question to continue.
                 }
             } else {
                 $("#answer-form form button").click();
-                hideAnswerButtons();
-
-                if (settings.show_multiple_readings) {
-                    $("#WKANKIMODE_answer_input").val('');
-                }
             }
         }
+    }
+
+    function hideButtonsForTyping() {
+        $(".WKANKIMODE_button.correct").hide();
+        $(".WKANKIMODE_button.incorrect").hide();
+        $(".WKANKIMODE_button.show").hide();
+        $(".WKANKIMODE_button.next").hide();
     }
 
     function hideAnswerButtons() {
@@ -486,18 +528,14 @@ window.ankimode = {};
                         break;
                     case 27: //key: escape (only needed when doublecheck is active)
                         if (window.doublecheck) {
-                            $("#user-response,#WKANKIMODE_answer_input").val('');
-                            answerShown = false;
-                            hideAnswerButtons();
+                            newQuestion();
                         }
 
                         return;
                         break;
                     case 8: //key: backspace (only needed when doublecheck is active)
                         if (window.doublecheck) {
-                            $("#user-response,#WKANKIMODE_answer_input").val('');
-                            answerShown = false;
-                            hideAnswerButtons();
+                            newQuestion();
                         }
                         return;
                         break;
