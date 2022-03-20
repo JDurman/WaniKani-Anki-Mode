@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wanikani Anki Mode
 // @namespace    wkankimode
-// @version      2.2.3
+// @version      2.2.4
 // @description  Anki mode for Wanikani; DoubleCheck 2.0 Support;
 // @author       JDurman
 // @include     /^https://(www|preview).wanikani.com/review/session/
@@ -49,6 +49,7 @@ window.ankimode = {};
             incorrect_hotkey: 'Digit2',
             showAnswer_hotkey: 'Space',
             doublecheck_delay_period: 1.5,
+            reverse_answer_btns: false,
             show_multiple_readings: false,
             type_readings: false,
         }
@@ -69,6 +70,15 @@ window.ankimode = {};
                                 correct_hotkey: { type: 'text', label: 'Marks answer correct', default: true, placeholder: 'Please press the desired key' },
                                 incorrect_hotkey: { type: 'text', label: 'Marks answer "incorrect"', default: true, placeholder: 'Please press the desired key' },
                                 showAnswer_hotkey: { type: 'text', label: 'Shows answer', default: true, placeholder: 'Please press the desired key' }
+                            }
+                        },
+                    }
+                },
+                genOptions: {
+                    type: 'page', label: 'Options', content: {
+                        gOptions: {
+                            type: 'group', label: 'Options', content: {
+                                reverse_answer_btns: { type: 'checkbox', label: 'Reverse Answer Buttons', default: false, hover_tip: 'Changes the order of the correct/incorrect buttons after showing an answer.' },
                             }
                         },
                     }
@@ -183,6 +193,52 @@ window.ankimode = {};
                 }
             }
 
+            //change button order based on what order is selected.
+            $("#WKANKIMODE_anki_correct").remove();
+            $("#WKANKIMODE_anki_incorrect").remove();
+
+            if (settings.reverse_answer_btns) {
+                $("<div />", {
+                    id: "WKANKIMODE_anki_correct",
+                    title: "Shortcut: K",
+                })
+                    .text("Know")
+                    .addClass("WKANKIMODE_button correct")
+                    .on("click", answerCorrect)
+                    .prependTo("#WKANKIMODE_buttons");
+    
+                $("<div />", {
+                    id: "WKANKIMODE_anki_incorrect",
+                    title: "Shortcut: L",
+                })
+                    .text("Don't know")
+                    .addClass("WKANKIMODE_button incorrect")
+                    .on("click", answerIncorrect)
+                    .prependTo("#WKANKIMODE_buttons");
+    
+            } else {
+    
+                $("<div />", {
+                    id: "WKANKIMODE_anki_incorrect",
+                    title: "Shortcut: L",
+                })
+                    .text("Don't know")
+                    .addClass("WKANKIMODE_button incorrect")
+                    .on("click", answerIncorrect)
+                    .prependTo("#WKANKIMODE_buttons");
+    
+                $("<div />", {
+                    id: "WKANKIMODE_anki_correct",
+                    title: "Shortcut: K",
+                })
+                    .text("Know")
+                    .addClass("WKANKIMODE_button correct")
+                    .on("click", answerCorrect)
+                    .prependTo("#WKANKIMODE_buttons");
+            }
+
+            newQuestion();
+
             wkof.Settings.save('ankimode');
         }
 
@@ -224,14 +280,47 @@ window.ankimode = {};
             .addClass("WKANKIMODE_buttons")
             .prependTo("#additional-content");
 
-        $("<div />", {
-            id: "WKANKIMODE_anki_incorrect",
-            title: "Shortcut: L",
-        })
-            .text("Don't know")
-            .addClass("WKANKIMODE_button incorrect")
-            .on("click", answerIncorrect)
-            .prependTo("#WKANKIMODE_buttons");
+
+        if (settings.reverse_answer_btns) {
+            $("<div />", {
+                id: "WKANKIMODE_anki_correct",
+                title: "Shortcut: K",
+            })
+                .text("Know")
+                .addClass("WKANKIMODE_button correct")
+                .on("click", answerCorrect)
+                .prependTo("#WKANKIMODE_buttons");
+
+            $("<div />", {
+                id: "WKANKIMODE_anki_incorrect",
+                title: "Shortcut: L",
+            })
+                .text("Don't know")
+                .addClass("WKANKIMODE_button incorrect")
+                .on("click", answerIncorrect)
+                .prependTo("#WKANKIMODE_buttons");
+
+        } else {
+
+            $("<div />", {
+                id: "WKANKIMODE_anki_incorrect",
+                title: "Shortcut: L",
+            })
+                .text("Don't know")
+                .addClass("WKANKIMODE_button incorrect")
+                .on("click", answerIncorrect)
+                .prependTo("#WKANKIMODE_buttons");
+
+            $("<div />", {
+                id: "WKANKIMODE_anki_correct",
+                title: "Shortcut: K",
+            })
+                .text("Know")
+                .addClass("WKANKIMODE_button correct")
+                .on("click", answerCorrect)
+                .prependTo("#WKANKIMODE_buttons");
+        }
+
 
         $("<div />", {
             id: "WKANKIMODE_anki_show",
@@ -250,14 +339,7 @@ window.ankimode = {};
             .on("click", nextAnswer)
             .prependTo("#WKANKIMODE_buttons");
 
-        $("<div />", {
-            id: "WKANKIMODE_anki_correct",
-            title: "Shortcut: K",
-        })
-            .text("Know")
-            .addClass("WKANKIMODE_button correct")
-            .on("click", answerCorrect)
-            .prependTo("#WKANKIMODE_buttons");
+
 
         if (window.doublecheck) {
             $('body').on('click', '#option-retype', function (event) {
