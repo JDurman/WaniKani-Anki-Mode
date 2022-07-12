@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wanikani Anki Mode
 // @namespace    wkankimode
-// @version      2.2.4
+// @version      2.2.5
 // @description  Anki mode for Wanikani; DoubleCheck 2.0 Support;
 // @author       JDurman
 // @include     /^https://(www|preview).wanikani.com/review/session/
@@ -13,7 +13,7 @@
 //CREDITS
 //Based on original Wanikani Anki Mode script by Mempo and modifications by necul and irrelephant
 //Templated the script off of the doublecheck script made by Robin Findley (rfindley).
-
+//Audio player logic based off code by Kumirei
 
 
 
@@ -52,6 +52,7 @@ window.ankimode = {};
             reverse_answer_btns: false,
             show_multiple_readings: false,
             type_readings: false,
+            play_reading_after_showing_answer: false,
         }
         return wkof.Settings.load('ankimode', defaults).then(init_ui.bind(null, true /* first_time */));
     }
@@ -79,6 +80,7 @@ window.ankimode = {};
                         gOptions: {
                             type: 'group', label: 'Options', content: {
                                 reverse_answer_btns: { type: 'checkbox', label: 'Reverse Answer Buttons', default: false, hover_tip: 'Changes the order of the correct/incorrect buttons after showing an answer.' },
+                                play_reading_after_showing_answer: { type: 'checkbox', label: 'Play Audio After Showing Answer', default: false, hover_tip: 'Plays the audio of the reading after you have shown the answer.' },
                             }
                         },
                     }
@@ -206,7 +208,7 @@ window.ankimode = {};
                     .addClass("WKANKIMODE_button correct")
                     .on("click", answerCorrect)
                     .prependTo("#WKANKIMODE_buttons");
-    
+
                 $("<div />", {
                     id: "WKANKIMODE_anki_incorrect",
                     title: "Shortcut: L",
@@ -215,9 +217,9 @@ window.ankimode = {};
                     .addClass("WKANKIMODE_button incorrect")
                     .on("click", answerIncorrect)
                     .prependTo("#WKANKIMODE_buttons");
-    
+
             } else {
-    
+
                 $("<div />", {
                     id: "WKANKIMODE_anki_incorrect",
                     title: "Shortcut: L",
@@ -226,7 +228,7 @@ window.ankimode = {};
                     .addClass("WKANKIMODE_button incorrect")
                     .on("click", answerIncorrect)
                     .prependTo("#WKANKIMODE_buttons");
-    
+
                 $("<div />", {
                     id: "WKANKIMODE_anki_correct",
                     title: "Shortcut: K",
@@ -420,6 +422,25 @@ window.ankimode = {};
     }
 
 
+    function playAudio() {
+        var questionType = $.jStorage.get("questionType");
+        if (questionType !== "meaning") {
+            let audio = new Audio()
+            let audios = $.jStorage.get('currentItem').aud
+            if ($('#lessons').length) {
+                audios = $.jStorage.get('l/currentLesson').aud
+                if ($.jStorage.get('l/quizActive')) audios = $.jStorage.get('l/currentQuizItem').aud
+            }
+            if (audios) {
+                let vaAudio = audios.filter((a) => a.voice_actor_id == window.WaniKani.default_voice_actor_id);
+                vaAudio.forEach((a) =>
+                    audio.insertAdjacentHTML('beforeend', `<source src="${a.url}" type+"${a.content_type}">`),
+                )
+                audio.play()
+            }
+        }
+    }
+
     //resets the state of the forms for a new question.
     function newQuestion() {
         if (ankiModeEnabled) {
@@ -491,6 +512,10 @@ window.ankimode = {};
             }
             answerShown = true;
             showAnswerButtons();
+
+            if (settings.play_reading_after_showing_answer) {
+                playAudio();
+            }
         }
     }
 
