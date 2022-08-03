@@ -50,7 +50,6 @@ window.ankimode = {};
             showAnswer_hotkey: 'Space',
             doublecheck_delay_period: 1.5,
             reverse_answer_btns: false,
-            show_multiple_readings: false,
             type_readings: false,
             play_reading_after_showing_answer: false,
         }
@@ -98,7 +97,6 @@ window.ankimode = {};
                     type: 'page', label: 'Experimental Features', content: {
                         grpDelay: {
                             type: 'group', label: 'Show Multiple Readings', content: {
-                                show_multiple_readings: { type: 'checkbox', label: 'Show Multiple Readings', default: false, hover_tip: 'Spoofs the answer input(Could cause issues)' },
                                 type_readings: { type: 'checkbox', label: 'Type Readings', default: false, hover_tip: 'Makes it so that you have to type readings' },
                             }
                         },
@@ -161,17 +159,13 @@ window.ankimode = {};
             settings.incorrect_hotkey = $("#ankimode_dialog #ankimode_incorrect_hotkey").val();
             settings.showAnswer_hotkey = $("#ankimode_dialog #ankimode_showAnswer_hotkey").val();
 
-            if ((settings.show_multiple_readings && !$("#WKANKIMODE_answer_input").length) || (!settings.show_multiple_readings && $("#WKANKIMODE_answer_input").length)) {
-                if (settings.show_multiple_readings) {
-                    $('#user-response').clone().attr('id', 'WKANKIMODE_answer_input').attr('name', 'WKANKIMODE_answer_input').attr('placeholder', "Your Response").removeAttr("data-wanakana-id lang").insertAfter("#user-response").hide();
+            if (!$("#WKANKIMODE_answer_input").length) {
+                $('#user-response').clone().attr('id', 'WKANKIMODE_answer_input').attr('name', 'WKANKIMODE_answer_input').attr('placeholder', "Your Response").removeAttr("data-wanakana-id lang").insertAfter("#user-response").hide();
 
-                    //show spoofed input
-                    $('#user-response').hide();
-                    $('#WKANKIMODE_answer_input').show();
-                } else {
-                    $("#WKANKIMODE_answer_input").remove();
-                    $('#user-response').show();
-                }
+                //show spoofed input
+                $('#user-response').hide();
+                $('#WKANKIMODE_answer_input').show();
+
 
                 $('#user-response,#WKANKIMODE_answer_input').focus(function (e) {
                     //If type reading feature is on and the question is a reading dont blur.
@@ -186,13 +180,8 @@ window.ankimode = {};
             if (settings.type_readings) {
                 newQuestion();
             } else {
-                if (settings.show_multiple_readings) {
-                    $('#user-response').hide();
-                    $('#WKANKIMODE_answer_input').show();
-                } else {
-                    $("#WKANKIMODE_answer_input").remove();
-                    $('#user-response').show();
-                }
+                $('#user-response').hide();
+                $('#WKANKIMODE_answer_input').show();
             }
 
             //change button order based on what order is selected.
@@ -372,13 +361,11 @@ window.ankimode = {};
     function ankimode_start() {
         ankiModeEnabled = true;
 
-        if (settings.show_multiple_readings) {
-            $('#user-response').clone().attr('id', 'WKANKIMODE_answer_input').attr('name', 'WKANKIMODE_answer_input').attr('placeholder', "Your Response").removeAttr("data-wanakana-id lang").insertAfter("#user-response").hide();
+        $('#user-response').clone().attr('id', 'WKANKIMODE_answer_input').attr('name', 'WKANKIMODE_answer_input').attr('placeholder', "Your Response").removeAttr("data-wanakana-id lang").insertAfter("#user-response").hide();
 
-            //show spoofed input
-            $('#user-response').hide();
-            $('#WKANKIMODE_answer_input').show();
-        }
+        //show spoofed input
+        $('#user-response').hide();
+        $('#WKANKIMODE_answer_input').show();
 
         $.jStorage.listenKeyChange('currentItem', newQuestion)
 
@@ -415,10 +402,8 @@ window.ankimode = {};
             $("#user-response").val("");
         }
 
-        if (settings.show_multiple_readings) {
-            $("#WKANKIMODE_answer_input").remove();
-            $('#user-response').show();
-        }
+        $("#WKANKIMODE_answer_input").remove();
+        $('#user-response').show();
     }
 
 
@@ -464,22 +449,17 @@ window.ankimode = {};
             hideAnswerButtons();
             $("#user-response").val('');
 
-            if (settings.show_multiple_readings) {
-                $("#WKANKIMODE_answer_input").val('');
-            }
+            $("#WKANKIMODE_answer_input").val('');
+
 
             if (settings.type_readings) {
                 var questionType = $.jStorage.get("questionType");
                 if (questionType === "meaning") {
-                    if (settings.show_multiple_readings) {
-                        $('#user-response').hide();
-                        $('#WKANKIMODE_answer_input').show();
-                    }
+                    $('#user-response').hide();
+                    $('#WKANKIMODE_answer_input').show();
                 } else {
-                    if (settings.show_multiple_readings) {
-                        $("#WKANKIMODE_answer_input").hide();
-                        $('#user-response').show();
-                    }
+                    $("#WKANKIMODE_answer_input").hide();
+                    $('#user-response').show();
                     hideButtonsForTyping();
                     $('#user-response').focus();
                 }
@@ -521,9 +501,7 @@ window.ankimode = {};
                 firstCorrectAnswer = singleAnswer;
                 $("#user-response").val(singleAnswer);
 
-                if (settings.show_multiple_readings) {
-                    $("#WKANKIMODE_answer_input").val(fullAnswer);
-                }
+                $("#WKANKIMODE_answer_input").val(fullAnswer);
             }
             answerShown = true;
             showAnswerButtons();
