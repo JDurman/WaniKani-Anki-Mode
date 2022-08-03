@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wanikani Anki Mode
 // @namespace    wkankimode
-// @version      2.2.5
+// @version      2.2.6
 // @description  Anki mode for Wanikani; DoubleCheck 2.0 Support;
 // @author       JDurman
 // @include     /^https://(www|preview).wanikani.com/review/session/
@@ -427,15 +427,30 @@ window.ankimode = {};
         if (questionType !== "meaning") {
             let audio = new Audio()
             let audios = $.jStorage.get('currentItem').aud
+
             if ($('#lessons').length) {
                 audios = $.jStorage.get('l/currentLesson').aud
                 if ($.jStorage.get('l/quizActive')) audios = $.jStorage.get('l/currentQuizItem').aud
             }
             if (audios) {
-                let vaAudio = audios.filter((a) => a.voice_actor_id == window.WaniKani.default_voice_actor_id);
-                vaAudio.forEach((a) =>
-                    audio.insertAdjacentHTML('beforeend', `<source src="${a.url}" type+"${a.content_type}">`),
-                )
+                //grab first reading or typed reading.     
+                let reading = $.jStorage.get('currentItem').kana[0];
+                if (settings.type_readings) {
+                    reading = $("#user-response").val();
+                }
+                let rAudio = audios.filter((a) => a.pronunciation == reading);
+                let vaAudio = rAudio.filter((a) => a.voice_actor_id == window.WaniKani.default_voice_actor_id);
+
+                if (vaAudio.length > 0) {
+                    vaAudio.forEach((a) =>
+                        audio.insertAdjacentHTML('beforeend', `<source src="${a.url}" type+"${a.content_type}">`),
+                    )
+                } else {
+                    rAudio.forEach((a) =>
+                        audio.insertAdjacentHTML('beforeend', `<source src="${a.url}" type+"${a.content_type}">`),
+                    )
+                }
+
                 audio.play()
             }
         }
