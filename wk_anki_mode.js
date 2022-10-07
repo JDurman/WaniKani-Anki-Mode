@@ -1,9 +1,10 @@
 // ==UserScript==
 // @name         Wanikani Anki Mode
 // @namespace    wkankimode
-// @version      2.2.6
+// @version      2.2.7
 // @description  Anki mode for Wanikani; DoubleCheck 2.0 Support;
 // @author       JDurman
+// @include     /^https://(www|preview).wanikani.com/lesson/session/
 // @include     /^https://(www|preview).wanikani.com/review/session/
 // @include     /^https://(www|preview).wanikani.com/extra_study/session/
 // @grant        none
@@ -28,6 +29,14 @@ window.ankimode = {};
     var firstCorrectAnswer = "";
     var secondNoTriggered = false;
     var ankiModeEnabled = false;
+    var currentWKMode = window.location.pathname;
+
+    //enum of supportedmodes
+    const WKModes = {
+        Lesson: "/lesson/session",
+        Review: "/review/session",
+        SelfStudy: "/extra_study/session"
+    };
 
     // Save the original evaluator
     var originalChecker = answerChecker.evaluate;
@@ -169,7 +178,7 @@ window.ankimode = {};
 
                 $('#user-response,#WKANKIMODE_answer_input').focus(function (e) {
                     //If type reading feature is on and the question is a reading dont blur.
-                    var questionType = $.jStorage.get("questionType");
+                    var questionType = getQuestionType();
                     if (questionType === "meaning" || !settings.type_readings) {
                         $(this).blur();
                     }
@@ -367,12 +376,16 @@ window.ankimode = {};
         $('#user-response').hide();
         $('#WKANKIMODE_answer_input').show();
 
+        //Reset question if review or self study.
         $.jStorage.listenKeyChange('currentItem', newQuestion)
+
+        //Reset quiz item if new lesson question.
+        $.jStorage.listenKeyChange('l/currentQuizItem', newQuestion)
 
         $('#answer-form button').hide();
         $('#user-response,#WKANKIMODE_answer_input').focus(function (e) {
             //If type reading feature is on and the question is a reading dont blur.
-            var questionType = $.jStorage.get("questionType");
+            var questionType = getQuestionType();
             if (questionType === "meaning" || !settings.type_readings) {
                 $(this).blur();
             }
@@ -406,12 +419,29 @@ window.ankimode = {};
         $('#user-response').show();
     }
 
+    function getCurrentItem(){       
+        if(currentWKMode == WKModes.Review || currentWKMode == WKModes.SelfStudy){
+            return $.jStorage.get('currentItem');
+        }else if(currentWKMode == WKModes.Lesson){
+            return $.jStorage.get('l/currentQuizItem');
+        }
+        return null;
+    }
+
+    function getQuestionType(){   
+        if(currentWKMode == WKModes.Review || currentWKMode == WKModes.SelfStudy){
+            return $.jStorage.get("questionType");
+        }else if(currentWKMode == WKModes.Lesson){
+            return $.jStorage.get('l/questionType');
+        }
+        return null;
+    }
 
     function playAudio() {
-        var questionType = $.jStorage.get("questionType");
+        var questionType = getQuestionType();
         if (questionType !== "meaning") {
             let audio = new Audio()
-            let audios = $.jStorage.get('currentItem').aud
+            let audios = getCurrentItem().aud
 
             if ($('#lessons').length) {
                 audios = $.jStorage.get('l/currentLesson').aud
@@ -419,7 +449,7 @@ window.ankimode = {};
             }
             if (audios) {
                 //grab first reading or typed reading.     
-                let reading = $.jStorage.get('currentItem').kana[0];
+                let reading = getCurrentItem().kana[0];
                 if (settings.type_readings) {
                     reading = $("#user-response").val();
                 }
@@ -453,7 +483,7 @@ window.ankimode = {};
 
 
             if (settings.type_readings) {
-                var questionType = $.jStorage.get("questionType");
+                var questionType = getQuestionType();
                 if (questionType === "meaning") {
                     $('#user-response').hide();
                     $('#WKANKIMODE_answer_input').show();
@@ -472,11 +502,11 @@ window.ankimode = {};
             !$("#answer-form form fieldset").hasClass("incorrect") &&
             !answerShown) {
             firstCorrectAnswer = "";
-            var currentItem = $.jStorage.get("currentItem");
-            var questionType = $.jStorage.get("questionType");
+            var currentItem = getCurrentItem();
+            var questionType = getQuestionType();
             if (questionType === "meaning") {
                 var answer = currentItem.en.join(", ");
-                if (currentItem.syn.length) {
+                if (currentItem.syn && currentItem.syn.length) {
                     answer += " (" + currentItem.syn.join(", ") + ")";
                 }
                 firstCorrectAnswer = currentItem.en[0];
@@ -551,7 +581,7 @@ window.ankimode = {};
         if (answerShown) {
             //fix for doublecheck
             if (window.doublecheck) {
-                var questionType = $.jStorage.get("questionType");
+                var questionType = getQuestionType();
                 if (questionType === 'meaning') {
                     $("#user-response,#WKANKIMODE_answer_input").val('xxxxxx');
                 } else {
@@ -616,7 +646,7 @@ window.ankimode = {};
     function bindHotkeys() {
         $('body').on("keydown", function (event) {
 
-            if ($("#reviews").is(":visible") && !$("*:focus").is("textarea, input") && settings.ankimode_enabled) {
+            if (($("#reviews").is(":visible") || $("#lessons").is(":visible")) && !$("*:focus").is("textarea, input") && settings.ankimode_enabled) {
                 switch (event.keyCode) {
                     //key: enter
                     case 13:
