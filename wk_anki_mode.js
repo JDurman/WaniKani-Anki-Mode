@@ -1,12 +1,11 @@
 // ==UserScript==
 // @name         Wanikani Anki Mode
 // @namespace    wkankimode
-// @version      2.2.7
-// @description  Anki mode for Wanikani; DoubleCheck 2.0 Support;
+// @version      3.0.0
+// @description  Anki mode for Wanikani; DoubleCheck 3.0 Support;
 // @author       JDurman
-// @include     /^https://(www|preview).wanikani.com/lesson/session/
-// @include     /^https://(www|preview).wanikani.com/review/session/
-// @include     /^https://(www|preview).wanikani.com/extra_study/session/
+// @match       https://www.wanikani.com/*
+// @match       https://preview.wanikani.com/*
 // @grant        none
 // @license      GPL version 3 or any later version; http://www.gnu.org/copyleft/gpl.html
 // ==/UserScript==
@@ -21,33 +20,56 @@
 window.ankimode = {};
 
 (function (gobj) {
-    wkof.include('Menu,Settings');
-    wkof.ready('document,Menu,Settings').then(setup);
+
+    var script_name = 'AnkiMode';
+    var wkof_version_needed = '1.1.0';
+
+    wkof.on_page_event({
+        urls: [
+            'https://*.wanikani.com/subjects/review',
+            'https://*.wanikani.com/subjects/extra_study*',
+        ],
+        load: load_script,
+        unload: unload_script,
+    });
+
+    function load_script() {
+        if (!window.wkof) {
+            if (confirm(script_name + ' requires Wanikani Open Framework.\nDo you want to be forwarded to the installation instructions?')) {
+                window.location.href = 'https://community.wanikani.com/t/instructions-installing-wanikani-open-framework/28549';
+            }
+            return;
+        }
+        if (wkof.version.compare_to(wkof_version_needed) === 'older') {
+            if (confirm(script_name + ' requires Wanikani Open Framework version ' + wkof_version_needed + '.\nDo you want to be forwarded to the update page?')) {
+                window.location.href = 'https://greasyfork.org/en/scripts/38582-wanikani-open-framework';
+            }
+            return;
+        }
+        wkof.include('Menu,Settings');
+        wkof.ready('document,Menu,Settings').then(setup);
+    }
+
+    function unload_script() {
+        document.querySelector('style[name="ankimode"]')?.remove();
+    }
+
+    function get_controller(name) {
+        return Stimulus.getControllerForElementAndIdentifier(document.querySelector(`[data-controller~="${name}"]`), name);
+    }
 
     var settings;
     var answerShown = false;
     var firstCorrectAnswer = "";
     var secondNoTriggered = false;
     var ankiModeEnabled = false;
-    var currentWKMode = window.location.pathname;
+    let quiz_input, quiz_queue;
+    let srs_map;
+    let answer_checker;
 
-    //enum of supportedmodes
-    const WKModes = {
-        Lesson: "/lesson/session",
-        Review: "/review/session",
-        SelfStudy: "/extra_study/session"
-    };
 
-    // Save the original evaluator
-    var originalChecker = answerChecker.evaluate;
 
-    var checkerYes = function (itemType, correctValue) {
-        return { accurate: !0, passed: !0 };
-    }
 
-    var checkerNo = function (itemType, correctValue) {
-        return { accurate: !0, passed: 0 };
-    }
 
 
     function setup() {
@@ -105,7 +127,7 @@ window.ankimode = {};
                 tabExp: {
                     type: 'page', label: 'Experimental Features', content: {
                         grpDelay: {
-                            type: 'group', label: 'Show Multiple Readings', content: {
+                            type: 'group', label: 'Type Readings', content: {
                                 type_readings: { type: 'checkbox', label: 'Type Readings', default: false, hover_tip: 'Makes it so that you have to type readings' },
                             }
                         },
@@ -250,6 +272,8 @@ window.ankimode = {};
             wkof.Settings.save('ankimode');
         }
 
+
+        //TODO: Check into why the ani mode button isnt highlighted yellow on intial click.
         // Initialize the Anki Mode button.
         if (settings.ankimode_enabled) {
             $('#anki-mode').addClass('anki-active');
@@ -260,7 +284,32 @@ window.ankimode = {};
     }
 
 
-    function startup() {
+    async function startup() {
+
+        quiz_input = get_controller('quiz-input');
+        quiz_queue = get_controller('quiz-queue');
+        additional_content = get_controller('additional-content');
+        item_info = get_controller('item-info');
+        subject_info = get_controller('subject-info');
+        quiz_audio = get_controller('quiz-audio');
+        quiz_stats = get_controller('quiz-statistics');
+        quiz_progress = get_controller('quiz-progress');
+        quiz_header = get_controller('quiz-header');
+        response_helpers = await importShim('lib/answer_checker/utils/response_helpers');
+        answer_checker = Stimulus.controllers.find((c) => c.answerChecker)?.answerChecker;
+        if (!answer_checker) {
+            let AnswerChecker = (await importShim('lib/answer_checker/answer_checker')).default;
+            answer_checker = new AnswerChecker;
+        }
+        if (quiz_queue.hasSubjectIdsWithSRSTarget) {
+            srs_map = new Map(JSON.parse(quiz_queue.subjectIdsWithSRSTarget.textContent));
+            let SRSManager = (await importShim('controllers/quiz_queue/srs_manager')).default;
+            srs_mgr = new SRSManager(srs_map);
+        } else {
+            srs_mgr = undefined;
+        }
+
+
         if (window.doublecheck) {
             $('head').append('<style>' + doubleCheckCssModification + '</style>');
         } else {
@@ -269,8 +318,12 @@ window.ankimode = {};
 
 
         // Add the Anki Mode button.
-        $('head').append('<style>#anki-mode.anki-active {color:#ff0; opacity:1.0;}</style>');
-        $('#summary-button').append('<a id="anki-mode" href="#"><i class="fa fa-star" title="Anki Mode - This allows you to turn on or off anki mode."></i></a>');
+        $('head').append('<style>#anki-mode.anki-active {color:#ff0; opacity:1.0;} #anki-mode { color:#fff;}</style>');
+        if (settings.ankimode_enabled) {
+            $('.character-header__menu-navigation').append('<a id="anki-mode" href="#" class="anki-active"><i class="fa fa-star" title="Anki Mode - This allows you to turn on or off anki mode."></i></a>');
+        } else {
+            $('.character-header__menu-navigation').append('<a id="anki-mode" href="#"><i class="fa fa-star" title="Anki Mode - This allows you to turn on or off anki mode."></i></a>');
+        }    
         $('#anki-mode').on('click', ankimode_clicked);
 
         //Add the Correct, Incorrect, and Show Answer buttons
@@ -376,11 +429,8 @@ window.ankimode = {};
         $('#user-response').hide();
         $('#WKANKIMODE_answer_input').show();
 
-        //Reset question if review or self study.
-        $.jStorage.listenKeyChange('currentItem', newQuestion)
-
-        //Reset quiz item if new lesson question.
-        $.jStorage.listenKeyChange('l/currentQuizItem', newQuestion)
+        //Reset question if review or self study. 
+        window.addEventListener(`willShowNextQuestion`, newQuestion);
 
         $('#answer-form button').hide();
         $('#user-response,#WKANKIMODE_answer_input').focus(function (e) {
@@ -411,7 +461,7 @@ window.ankimode = {};
 
         $("#user-response").focus();
 
-        if (!$("#answer-form form fieldset").hasClass("correct") && !$("#answer-form form fieldset").hasClass("incorrect")) {
+        if (!($(".quiz-input__input-container[correct=true]").length === 1) && !($(".quiz-input__input-container[correct=false]").length === 1)) {
             $("#user-response").val("");
         }
 
@@ -419,61 +469,52 @@ window.ankimode = {};
         $('#user-response').show();
     }
 
-    function getCurrentItem(){       
-        if(currentWKMode == WKModes.Review || currentWKMode == WKModes.SelfStudy){
-            return $.jStorage.get('currentItem');
-        }else if(currentWKMode == WKModes.Lesson){
-            return $.jStorage.get('l/currentQuizItem');
-        }
-        return null;
+    function getCurrentItem() {
+        return quiz_input.currentSubject;
     }
 
-    function getQuestionType(){   
-        if(currentWKMode == WKModes.Review || currentWKMode == WKModes.SelfStudy){
-            return $.jStorage.get("questionType");
-        }else if(currentWKMode == WKModes.Lesson){
-            return $.jStorage.get('l/questionType');
-        }
-        return null;
+    function getQuestionType() {
+        return quiz_input.currentQuestionType;
     }
 
     function playAudio() {
-        var questionType = getQuestionType();
-        if (questionType !== "meaning") {
-            let audio = new Audio()
-            let audios = getCurrentItem().aud
+        quiz_audio.play();
+        // var questionType = getQuestionType();
+        // if (questionType !== "meaning") {
+            
+            // let audio = new Audio()
+            // let audios = getCurrentItem().aud
 
-            if ($('#lessons').length) {
-                audios = $.jStorage.get('l/currentLesson').aud
-                if ($.jStorage.get('l/quizActive')) audios = $.jStorage.get('l/currentQuizItem').aud
-            }
-            if (audios) {
-                //grab first reading or typed reading.     
-                let reading = getCurrentItem().kana[0];
-                if (settings.type_readings) {
-                    reading = $("#user-response").val();
-                }
-                let rAudio = audios.filter((a) => a.pronunciation == reading);
-                let vaAudio = rAudio.filter((a) => a.voice_actor_id == window.WaniKani.default_voice_actor_id);
+            // if (audios) {
+            //     //grab first reading or typed reading.     
+            //     let reading = getCurrentItem().kana[0];
+            //     if (settings.type_readings) {
+            //         reading = $("#user-response").val();
+            //     }
+            //     let rAudio = audios.filter((a) => a.pronunciation == reading);
+            //     let vaAudio = rAudio.filter((a) => a.voice_actor_id == window.WaniKani.default_voice_actor_id);
 
-                if (vaAudio.length > 0) {
-                    vaAudio.forEach((a) =>
-                        audio.insertAdjacentHTML('beforeend', `<source src="${a.url}" type+"${a.content_type}">`),
-                    )
-                } else {
-                    rAudio.forEach((a) =>
-                        audio.insertAdjacentHTML('beforeend', `<source src="${a.url}" type+"${a.content_type}">`),
-                    )
-                }
+            //     if (vaAudio.length > 0) {
+            //         vaAudio.forEach((a) =>
+            //             audio.insertAdjacentHTML('beforeend', `<source src="${a.url}" type+"${a.content_type}">`),
+            //         )
+            //     } else {
+            //         rAudio.forEach((a) =>
+            //             audio.insertAdjacentHTML('beforeend', `<source src="${a.url}" type+"${a.content_type}">`),
+            //         )
+            //     }
 
-                audio.play()
-            }
-        }
+            //     audio.play()
+            // }
+        //}
     }
 
     //resets the state of the forms for a new question.
     function newQuestion() {
-        if (ankiModeEnabled) {
+        if (ankiModeEnabled) {      
+            quiz_input = get_controller('quiz-input');
+            quiz_audio = get_controller('quiz-audio');
+            
             secondNoTriggered = false;
             answerShown = false;
             hideAnswerButtons();
@@ -482,51 +523,54 @@ window.ankimode = {};
             $("#WKANKIMODE_answer_input").val('');
 
 
-            if (settings.type_readings) {
-                var questionType = getQuestionType();
-                if (questionType === "meaning") {
-                    $('#user-response').hide();
-                    $('#WKANKIMODE_answer_input').show();
-                } else {
-                    $("#WKANKIMODE_answer_input").hide();
-                    $('#user-response').show();
-                    hideButtonsForTyping();
-                    $('#user-response').focus();
-                }
-            }
+            //TODO: Fix Type Readings.
+            // if (settings.type_readings) {
+            //     var questionType = getQuestionType();
+            //     if (questionType === "meaning") {
+            //         $('#user-response').hide();
+            //         $('#WKANKIMODE_answer_input').show();
+            //     } else {
+            //         $("#WKANKIMODE_answer_input").hide();
+            //         $('#user-response').show();
+            //         hideButtonsForTyping();
+            //         $('#user-response').focus();
+            //     }
+            // }
         }
     }
 
     function showAnswer() {
-        if (!$("#answer-form form fieldset").hasClass("correct") &&
-            !$("#answer-form form fieldset").hasClass("incorrect") &&
+        if (!($(".quiz-input__input-container[correct=true]").length === 1) &&
+            !($(".quiz-input__input-container[correct=false]").length === 1) &&
             !answerShown) {
             firstCorrectAnswer = "";
             var currentItem = getCurrentItem();
             var questionType = getQuestionType();
             if (questionType === "meaning") {
-                var answer = currentItem.en.join(", ");
-                if (currentItem.syn && currentItem.syn.length) {
-                    answer += " (" + currentItem.syn.join(", ") + ")";
+                var answer = currentItem.meanings.join(", ");
+                let synonyms = quiz_input.quizUserSynonymsOutlet.synonymsForSubjectId(getCurrentItem().id);
+                if (synonyms && synonyms.length) {
+                    answer += " (" + synonyms.join(", ") + ")";
                 }
-                firstCorrectAnswer = currentItem.en[0];
+
+                firstCorrectAnswer = currentItem.meanings[0];
                 $("#user-response,#WKANKIMODE_answer_input").val(answer);
             } else { //READING QUESTION
                 var i = 0;
                 var singleAnswer = "";
                 var fullAnswer = "";
-                if (currentItem.voc) {
-                    singleAnswer += currentItem.kana[0];
-                    fullAnswer = currentItem.kana.join(", ");
-                } else if (currentItem.emph == 'kunyomi') {
-                    singleAnswer += currentItem.kun[0];
-                    fullAnswer = currentItem.kun.join(", ");
-                } else if (currentItem.emph == 'nanori') {
+                if (currentItem.type == "Vocabulary") {
+                    singleAnswer += currentItem.readings[0].reading;
+                    fullAnswer = currentItem.readings.map(x => x.reading).join(", ");
+                } else if (currentItem.primary_reading_type == 'kunyomi') {
+                    singleAnswer += currentItem.kunyomi[0];
+                    fullAnswer = currentItem.kunyomi.join(", ");
+                } else if (currentItem.primary_reading_type == 'nanori') {
                     singleAnswer += currentItem.nanori[0];
                     fullAnswer = currentItem.nanori.join(", ");
                 } else {
-                    singleAnswer += currentItem.on[0];
-                    fullAnswer = currentItem.on.join(", ");
+                    singleAnswer += currentItem.onyomi[0];
+                    fullAnswer = currentItem.onyomi.join(", ");
                 }
                 firstCorrectAnswer = singleAnswer;
                 $("#user-response").val(singleAnswer);
@@ -537,15 +581,15 @@ window.ankimode = {};
             showAnswerButtons();
 
             if (settings.play_reading_after_showing_answer) {
-                playAudio();
+                //playAudio();
             }
         }
     }
 
     function nextAnswer() {
-        if ($("#answer-form form fieldset").hasClass("correct")) {
+        if ($(".quiz-input__input-container[correct=true]").length === 1) {
             answerCorrect();
-        } else if ($("#answer-form form fieldset").hasClass("incorrect")) {
+        } else if ($(".quiz-input__input-container[correct=false]").length === 1) {
             answerIncorrect();
         }
     }
@@ -556,12 +600,10 @@ window.ankimode = {};
             if (firstCorrectAnswer) {
                 $("#user-response").val(firstCorrectAnswer);
                 firstCorrectAnswer = "";
-            }
-
-            answerChecker.evaluate = checkerYes;
-            $("#answer-form form button").click();
+            }           
+ 
+            $(".quiz-input__submit-button").click();
             answerShown = false;
-            answerChecker.evaluate = originalChecker;
 
             //if lightning mode then move on to the next answer if not then show next button
             if ($("#lightning-mode.doublecheck-active").length == 0) {
@@ -572,8 +614,8 @@ window.ankimode = {};
         }
 
         // if answer is shown, press correct hotkey one more time to go to next
-        if ($("#answer-form form fieldset").hasClass("correct")) {
-            $("#answer-form form button").click();
+        if ($(".quiz-input__input-container[correct=true]").length === 1) {
+            $(".quiz-input__submit-button").click();
         }
     }
 
@@ -589,28 +631,26 @@ window.ankimode = {};
                 }
             }
 
-            answerChecker.evaluate = checkerNo;
-            $("#answer-form form button").click();
+            $(".quiz-input__submit-button").click();
             answerShown = false;
-            answerChecker.evaluate = originalChecker;
             showNextButton();
 
             return;
         }
 
-        if ($("#answer-form form fieldset").hasClass("incorrect")) {
+        if ($(".quiz-input__input-container[correct=false]").length === 1) {
             if (window.doublecheck) {
                 if (!secondNoTriggered) {
                     secondNoTriggered = true;
                     setTimeout(function () {
 
-                        $("#answer-form form button").click();
+                        $(".quiz-input__submit-button").click();
                         secondNoTriggered = false;
 
                     }, settings.doublecheck_delay_period * 1000); //needs to match the doublecheck delay period. Otherwise it wont allow the question to continue.
                 }
             } else {
-                $("#answer-form form button").click();
+                $(".quiz-input__submit-button").click();
             }
         }
     }
@@ -646,12 +686,12 @@ window.ankimode = {};
     function bindHotkeys() {
         $('body').on("keydown", function (event) {
 
-            if (($("#reviews").is(":visible") || $("#lessons").is(":visible")) && !$("*:focus").is("textarea, input") && settings.ankimode_enabled) {
+            if (($(".quiz").length == 1) && !$("*:focus").is("textarea, input") && settings.ankimode_enabled) {
                 switch (event.keyCode) {
                     //key: enter
                     case 13:
-                        if ($("#answer-form form fieldset").hasClass("correct") ||
-                            $("#answer-form form fieldset").hasClass("incorrect")) {
+                        if ($(".quiz-input__input-container[correct=true]").length === 1 ||
+                        $(".quiz-input__input-container[correct=false]").length === 1) {
                             hideAnswerButtons();
                         }
                         return;
