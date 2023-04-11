@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wanikani Anki Mode
 // @namespace    wkankimode
-// @version      3.0.0
+// @version      3.0.1
 // @description  Anki mode for Wanikani; DoubleCheck 3.0 Support;
 // @author       JDurman
 // @match       https://www.wanikani.com/*
@@ -13,7 +13,6 @@
 //CREDITS
 //Based on original Wanikani Anki Mode script by Mempo and modifications by necul and irrelephant
 //Templated the script off of the doublecheck script made by Robin Findley (rfindley).
-//Audio player logic based off code by Kumirei
 
 
 
