@@ -477,36 +477,38 @@ window.ankimode = {};
         return quiz_input.currentQuestionType;
     }
 
-    function playAudio() {
-        quiz_audio.play();
-        // var questionType = getQuestionType();
-        // if (questionType !== "meaning") {
-            
-            // let audio = new Audio()
-            // let audios = getCurrentItem().aud
+    function playAudio(reading) {
+         var questionType = getQuestionType();
+         if (questionType !== "meaning") {
+                       
+            let readings = getCurrentItem().readings
 
-            // if (audios) {
-            //     //grab first reading or typed reading.     
-            //     let reading = getCurrentItem().kana[0];
-            //     if (settings.type_readings) {
-            //         reading = $("#user-response").val();
-            //     }
-            //     let rAudio = audios.filter((a) => a.pronunciation == reading);
-            //     let vaAudio = rAudio.filter((a) => a.voice_actor_id == window.WaniKani.default_voice_actor_id);
+            if (readings.length > 0) {
+                //grab first reading or typed reading.    
+                if (settings.type_readings) {
+                    reading = $("#user-response").val();
+                }
+                
+                let pronunciation =  readings.filter((a) => a.reading == reading);
+                if(pronunciation.length > 0){
+                    let vaAudio = getRandomAudioSource(pronunciation[0].pronunciations).sources;
+                    let audio = new Audio(vaAudio[0].url);
+                    audio.play();
+                }
+                           
+            }
+        }
+    }
 
-            //     if (vaAudio.length > 0) {
-            //         vaAudio.forEach((a) =>
-            //             audio.insertAdjacentHTML('beforeend', `<source src="${a.url}" type+"${a.content_type}">`),
-            //         )
-            //     } else {
-            //         rAudio.forEach((a) =>
-            //             audio.insertAdjacentHTML('beforeend', `<source src="${a.url}" type+"${a.content_type}">`),
-            //         )
-            //     }
+    function getRandomAudioSource(arr) {
 
-            //     audio.play()
-            // }
-        //}
+        // get random index value
+        const randomIndex = Math.floor(Math.random() * arr.length);
+    
+        // get random item
+        const item = arr[randomIndex];
+    
+        return item;
     }
 
     //resets the state of the forms for a new question.
@@ -581,7 +583,7 @@ window.ankimode = {};
             showAnswerButtons();
 
             if (settings.play_reading_after_showing_answer) {
-                //playAudio();
+                playAudio(singleAnswer);
             }
         }
     }
