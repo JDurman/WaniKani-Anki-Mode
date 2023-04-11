@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wanikani Anki Mode
 // @namespace    wkankimode
-// @version      3.0.1
+// @version      3.0.2
 // @description  Anki mode for Wanikani; DoubleCheck 3.0 Support;
 // @author       JDurman
 // @match       https://www.wanikani.com/*
@@ -322,7 +322,7 @@ window.ankimode = {};
             $('.character-header__menu-navigation').append('<a id="anki-mode" href="#" class="anki-active"><i class="fa fa-star" title="Anki Mode - This allows you to turn on or off anki mode."></i></a>');
         } else {
             $('.character-header__menu-navigation').append('<a id="anki-mode" href="#"><i class="fa fa-star" title="Anki Mode - This allows you to turn on or off anki mode."></i></a>');
-        }    
+        }
         $('#anki-mode').on('click', ankimode_clicked);
 
         //Add the Correct, Incorrect, and Show Answer buttons
@@ -477,24 +477,24 @@ window.ankimode = {};
     }
 
     function playAudio(reading) {
-         var questionType = getQuestionType();
-         if (questionType !== "meaning") {
-                       
+        var questionType = getQuestionType();
+        if (questionType !== "meaning") {
+
             let readings = getCurrentItem().readings
 
-            if (readings.length > 0) {
+            if (readings && readings.length > 0) {
                 //grab first reading or typed reading.    
                 if (settings.type_readings) {
                     reading = $("#user-response").val();
                 }
-                
-                let pronunciation =  readings.filter((a) => a.reading == reading);
-                if(pronunciation.length > 0){
+
+                let pronunciation = readings.filter((a) => a.reading == reading);
+                if (pronunciation.length > 0) {
                     let vaAudio = getRandomAudioSource(pronunciation[0].pronunciations).sources;
                     let audio = new Audio(vaAudio[0].url);
                     audio.play();
                 }
-                           
+
             }
         }
     }
@@ -503,19 +503,19 @@ window.ankimode = {};
 
         // get random index value
         const randomIndex = Math.floor(Math.random() * arr.length);
-    
+
         // get random item
         const item = arr[randomIndex];
-    
+
         return item;
     }
 
     //resets the state of the forms for a new question.
     function newQuestion() {
-        if (ankiModeEnabled) {      
+        if (ankiModeEnabled) {
             quiz_input = get_controller('quiz-input');
             quiz_audio = get_controller('quiz-audio');
-            
+
             secondNoTriggered = false;
             answerShown = false;
             hideAnswerButtons();
@@ -601,8 +601,8 @@ window.ankimode = {};
             if (firstCorrectAnswer) {
                 $("#user-response").val(firstCorrectAnswer);
                 firstCorrectAnswer = "";
-            }           
- 
+            }
+
             $(".quiz-input__submit-button").click();
             answerShown = false;
 
@@ -622,14 +622,11 @@ window.ankimode = {};
 
     function answerIncorrect() {
         if (answerShown) {
-            //fix for doublecheck
-            if (window.doublecheck) {
-                var questionType = getQuestionType();
-                if (questionType === 'meaning') {
-                    $("#user-response,#WKANKIMODE_answer_input").val('xxxxxx');
-                } else {
-                    $("#user-response,#WKANKIMODE_answer_input").val('ばつっっっ');
-                }
+            var questionType = getQuestionType();
+            if (questionType === 'meaning') {
+                $("#user-response,#WKANKIMODE_answer_input").val('xxxxxx');
+            } else {
+                $("#user-response,#WKANKIMODE_answer_input").val('ばつっっっ');
             }
 
             $(".quiz-input__submit-button").click();
@@ -692,7 +689,7 @@ window.ankimode = {};
                     //key: enter
                     case 13:
                         if ($(".quiz-input__input-container[correct=true]").length === 1 ||
-                        $(".quiz-input__input-container[correct=false]").length === 1) {
+                            $(".quiz-input__input-container[correct=false]").length === 1) {
                             hideAnswerButtons();
                         }
                         return;
