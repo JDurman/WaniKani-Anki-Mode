@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wanikani Anki Mode
 // @namespace    wkankimode
-// @version      3.0.2
+// @version      3.0.3
 // @description  Anki mode for Wanikani; DoubleCheck 3.0 Support;
 // @author       JDurman
 // @match       https://www.wanikani.com/*
@@ -65,6 +65,7 @@ window.ankimode = {};
     let quiz_input, quiz_queue;
     let srs_map;
     let answer_checker;
+    let typedAnswerJustSubmitted = true;
 
 
 
@@ -272,7 +273,6 @@ window.ankimode = {};
         }
 
 
-        //TODO: Check into why the ani mode button isnt highlighted yellow on intial click.
         // Initialize the Anki Mode button.
         if (settings.ankimode_enabled) {
             $('#anki-mode').addClass('anki-active');
@@ -517,6 +517,7 @@ window.ankimode = {};
             quiz_audio = get_controller('quiz-audio');
 
             secondNoTriggered = false;
+            typedAnswerJustSubmitted = true;
             answerShown = false;
             hideAnswerButtons();
             $("#user-response").val('');
@@ -524,19 +525,18 @@ window.ankimode = {};
             $("#WKANKIMODE_answer_input").val('');
 
 
-            //TODO: Fix Type Readings.
-            // if (settings.type_readings) {
-            //     var questionType = getQuestionType();
-            //     if (questionType === "meaning") {
-            //         $('#user-response').hide();
-            //         $('#WKANKIMODE_answer_input').show();
-            //     } else {
-            //         $("#WKANKIMODE_answer_input").hide();
-            //         $('#user-response').show();
-            //         hideButtonsForTyping();
-            //         $('#user-response').focus();
-            //     }
-            // }
+            if (settings.type_readings) {
+                var questionType = getQuestionType();
+                if (questionType === "meaning") {
+                    $('#user-response').hide();
+                    $('#WKANKIMODE_answer_input').show();
+                } else {
+                    $("#WKANKIMODE_answer_input").hide();
+                    $('#user-response').show();
+                    hideButtonsForTyping();
+                    $('#user-response').focus();
+                }
+            }
         }
     }
 
@@ -688,9 +688,20 @@ window.ankimode = {};
                 switch (event.keyCode) {
                     //key: enter
                     case 13:
-                        if ($(".quiz-input__input-container[correct=true]").length === 1 ||
-                            $(".quiz-input__input-container[correct=false]").length === 1) {
-                            hideAnswerButtons();
+                        if (($(".quiz-input__input-container[correct=true]").length === 1 ||
+                            $(".quiz-input__input-container[correct=false]").length === 1)) {
+                            if (settings.type_readings) {
+                                if($(".quiz-input__input-container[correct=false]").length === 1){                                
+                                    if(typedAnswerJustSubmitted == true){
+                                        typedAnswerJustSubmitted = false;
+                                    }else{
+                                        answerIncorrect();
+                                    }
+                                }
+                                
+                            } else {
+                                hideAnswerButtons();
+                            }
                         }
                         return;
                         break;
