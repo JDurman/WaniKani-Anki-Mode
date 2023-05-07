@@ -26,6 +26,7 @@ window.ankimode = {};
     wkof.on_page_event({
         urls: [
             'https://*.wanikani.com/subjects/review',
+            'https://*.wanikani.com/subjects/lesson/quiz*',
             'https://*.wanikani.com/subjects/extra_study*',
         ],
         load: load_script,
