@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wanikani Anki Mode
 // @namespace    wkankimode
-// @version      3.0.3
+// @version      3.0.5
 // @description  Anki mode for Wanikani; DoubleCheck 3.0 Support;
 // @author       JDurman
 // @match       https://www.wanikani.com/*
@@ -19,9 +19,8 @@
 window.ankimode = {};
 
 (function (gobj) {
-
     var script_name = 'AnkiMode';
-    var wkof_version_needed = '1.1.0';
+    var wkof_version_needed = '1.1.3';
 
     wkof.on_page_event({
         urls: [
@@ -58,7 +57,7 @@ window.ankimode = {};
         return Stimulus.getControllerForElementAndIdentifier(document.querySelector(`[data-controller~="${name}"]`), name);
     }
 
-    var settings;
+    let settings;
     var answerShown = false;
     var firstCorrectAnswer = "";
     var secondNoTriggered = false;
@@ -99,9 +98,9 @@ window.ankimode = {};
                     type: 'page', label: 'Hotkeys', content: {
                         grpHotkeys: {
                             type: 'group', label: 'Hotkeys', content: {
-                                correct_hotkey: { type: 'text', label: 'Marks answer correct', default: true, placeholder: 'Please press the desired key' },
-                                incorrect_hotkey: { type: 'text', label: 'Marks answer "incorrect"', default: true, placeholder: 'Please press the desired key' },
-                                showAnswer_hotkey: { type: 'text', label: 'Shows answer', default: true, placeholder: 'Please press the desired key' }
+                                correct_hotkey: { type: 'text', label: 'Marks answer correct', default: 'Digit1', placeholder: 'Please press the desired key' },
+                                incorrect_hotkey: { type: 'text', label: 'Marks answer "incorrect"', default: 'Digit2', placeholder: 'Please press the desired key' },
+                                showAnswer_hotkey: { type: 'text', label: 'Shows answer', default: 'Space', placeholder: 'Please press the desired key' }
                             }
                         },
                     }
@@ -180,12 +179,12 @@ window.ankimode = {};
     }
 
     var first_time = true;
-    function init_ui() {
+    async function init_ui() {
         settings = wkof.settings.ankimode;
 
         if (first_time) {
             first_time = false;
-            startup();
+            await startup();
         } else {
             settings.correct_hotkey = $("#ankimode_dialog #ankimode_correct_hotkey").val();
             settings.incorrect_hotkey = $("#ankimode_dialog #ankimode_incorrect_hotkey").val();
@@ -262,7 +261,7 @@ window.ankimode = {};
 
             newQuestion();
 
-            wkof.Settings.save('ankimode');
+            //wkof.Settings.save('ankimode');
         }
 
         // Get 'Anki Mode State' setting from localStorage.
@@ -285,7 +284,6 @@ window.ankimode = {};
 
 
     async function startup() {
-
         quiz_input = get_controller('quiz-input');
         quiz_queue = get_controller('quiz-queue');
         additional_content = get_controller('additional-content');
@@ -692,14 +690,14 @@ window.ankimode = {};
                         if (($(".quiz-input__input-container[correct=true]").length === 1 ||
                             $(".quiz-input__input-container[correct=false]").length === 1)) {
                             if (settings.type_readings) {
-                                if($(".quiz-input__input-container[correct=false]").length === 1){                                
-                                    if(typedAnswerJustSubmitted == true){
+                                if ($(".quiz-input__input-container[correct=false]").length === 1) {
+                                    if (typedAnswerJustSubmitted == true) {
                                         typedAnswerJustSubmitted = false;
-                                    }else{
+                                    } else {
                                         answerIncorrect();
                                     }
                                 }
-                                
+
                             } else {
                                 hideAnswerButtons();
                             }
