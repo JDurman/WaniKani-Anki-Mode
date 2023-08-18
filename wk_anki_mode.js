@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wanikani Anki Mode
 // @namespace    wkankimode
-// @version      3.0.5
+// @version      3.0.6
 // @description  Anki mode for Wanikani; DoubleCheck 3.0 Support;
 // @author       JDurman
 // @match       https://www.wanikani.com/*
@@ -22,15 +22,52 @@ window.ankimode = {};
     var script_name = 'AnkiMode';
     var wkof_version_needed = '1.1.3';
 
-    wkof.on_page_event({
-        urls: [
-            'https://*.wanikani.com/subjects/review',
-            'https://*.wanikani.com/subjects/lesson/quiz*',
-            'https://*.wanikani.com/subjects/extra_study*',
-        ],
-        load: load_script,
-        unload: unload_script,
-    });
+
+
+    /* globals Stimulus, wkof */
+
+    const match_patterns = [
+        '/subjects/review',
+        '/subjects/lesson/quiz*',
+        '/subjects/extra_study*',
+        '/recent-mistakes/*/quiz',
+    ];
+    function url_matches(patterns, url) { patterns = patterns || match_patterns; url = url || window.location.pathname; if (url[0] !== '/') url = new URL(url).pathname; return ((Array.isArray(patterns) ? patterns : [patterns]).findIndex((pattern) => { let regex = new RegExp(pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replaceAll('*', '.*')); return (regex.test(url)); }) >= 0); }
+    function is_turbo_page() { return (document.querySelector('script[type="importmap"]')?.innerHTML.match('@hotwired/turbo') != null); }
+    function get_controller(name) { return Stimulus.getControllerForElementAndIdentifier(document.querySelector(`[data-controller~="${name}"]`), name); }
+
+    if (is_turbo_page()) {
+        try { app_load(); } catch (e) { }
+        try { document.documentElement.addEventListener('turbo:load', page_load); } catch (e) { }
+        try { document.documentElement.addEventListener('turbo:before-render', before_page_render); } catch (e) { }
+        try { document.documentElement.addEventListener('turbo:frame-load', frame_load); } catch (e) { }
+        try { document.documentElement.addEventListener('turbo:before-frame-render', before_frame_render); } catch (e) { }
+    } else {
+        try { app_load(); } catch (e) { }
+        try { page_load({ detail: { url: window.location.href }, target: document.documentElement }); } catch (e) { }
+        try { frame_load({ target: document.documentElement }); } catch (e) { }
+    }
+
+    function app_load() {
+        if (!url_matches(match_patterns)) return;
+        // Do stuff here that only needs to run when Stimulus first starts.
+    }
+    function page_load() {
+        if (!url_matches(match_patterns)) return;
+        // Do stuff here that needs to be done each time a particular page loads.
+
+        load_script();
+        // NOTE FOR LESSON QUIZ PAGE: The Lesson Quiz page needs a delay, otherwise WK overwrites it immediately.
+        setTimeout(() => {
+            wkof.Menu.insert_script_link({ name: 'ankimode', submenu: 'Settings', title: 'Anki Mode', on_click: open_settings });
+        }, 1);
+    }
+    function frame_load() {
+        if (!url_matches(match_patterns)) return;
+        // Do stuff here that needs to be done each time a particular frame loads.
+    }
+
+
 
     function load_script() {
         if (!window.wkof) {
@@ -49,13 +86,7 @@ window.ankimode = {};
         wkof.ready('document,Menu,Settings').then(setup);
     }
 
-    function unload_script() {
-        document.querySelector('style[name="ankimode"]')?.remove();
-    }
 
-    function get_controller(name) {
-        return Stimulus.getControllerForElementAndIdentifier(document.querySelector(`[data-controller~="${name}"]`), name);
-    }
 
     let settings;
     var answerShown = false;
@@ -66,9 +97,6 @@ window.ankimode = {};
     let srs_map;
     let answer_checker;
     let typedAnswerJustSubmitted = true;
-
-
-
 
 
 
@@ -514,18 +542,21 @@ window.ankimode = {};
         if (ankiModeEnabled) {
             quiz_input = get_controller('quiz-input');
             quiz_audio = get_controller('quiz-audio');
+            var questionType = getQuestionType();
 
             secondNoTriggered = false;
             typedAnswerJustSubmitted = true;
             answerShown = false;
             hideAnswerButtons();
-            $("#user-response").val('');
 
+            $("#WKANKIMODE_answer_input").attr("placeholder", $("#user-response").attr("placeholder"));
+
+            $("#user-response").val('');
             $("#WKANKIMODE_answer_input").val('');
 
+            
 
-            if (settings.type_readings) {
-                var questionType = getQuestionType();
+            if (settings.type_readings) {              
                 if (questionType === "meaning") {
                     $('#user-response').hide();
                     $('#WKANKIMODE_answer_input').show();
