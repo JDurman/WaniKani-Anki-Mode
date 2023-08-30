@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wanikani Anki Mode
 // @namespace    wkankimode
-// @version      3.0.6
+// @version      3.0.7
 // @description  Anki mode for Wanikani; DoubleCheck 3.0 Support;
 // @author       JDurman
 // @match       https://www.wanikani.com/*
@@ -21,6 +21,7 @@ window.ankimode = {};
 (function (gobj) {
     var script_name = 'AnkiMode';
     var wkof_version_needed = '1.1.3';
+    var scriptLoading = false;
 
 
 
@@ -51,14 +52,18 @@ window.ankimode = {};
     function app_load() {
         if (!url_matches(match_patterns)) return;
         // Do stuff here that only needs to run when Stimulus first starts.
+        load_script();
     }
     function page_load() {
         if (!url_matches(match_patterns)) return;
         // Do stuff here that needs to be done each time a particular page loads.
-
-        load_script();
+        
         // NOTE FOR LESSON QUIZ PAGE: The Lesson Quiz page needs a delay, otherwise WK overwrites it immediately.
         setTimeout(() => {
+            if(!scriptLoading){
+                load_script();
+            }
+
             wkof.Menu.insert_script_link({ name: 'ankimode', submenu: 'Settings', title: 'Anki Mode', on_click: open_settings });
         }, 1);
     }
@@ -70,6 +75,7 @@ window.ankimode = {};
 
 
     function load_script() {
+        scriptLoading = true;
         if (!window.wkof) {
             if (confirm(script_name + ' requires Wanikani Open Framework.\nDo you want to be forwarded to the installation instructions?')) {
                 window.location.href = 'https://community.wanikani.com/t/instructions-installing-wanikani-open-framework/28549';
