@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wanikani Anki Mode
 // @namespace    wkankimode
-// @version      3.0.7
+// @version      3.0.8
 // @description  Anki mode for Wanikani; DoubleCheck 3.0 Support;
 // @author       JDurman
 // @match       https://www.wanikani.com/*
@@ -29,9 +29,11 @@ window.ankimode = {};
 
     const match_patterns = [
         '/subjects/review',
+        '/subject-lessons/*/quiz',
         '/subjects/lesson/quiz*',
         '/subjects/extra_study*',
         '/recent-mistakes/*/quiz',
+
     ];
     function url_matches(patterns, url) { patterns = patterns || match_patterns; url = url || window.location.pathname; if (url[0] !== '/') url = new URL(url).pathname; return ((Array.isArray(patterns) ? patterns : [patterns]).findIndex((pattern) => { let regex = new RegExp(pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replaceAll('*', '.*')); return (regex.test(url)); }) >= 0); }
     function is_turbo_page() { return (document.querySelector('script[type="importmap"]')?.innerHTML.match('@hotwired/turbo') != null); }
