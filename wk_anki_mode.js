@@ -354,9 +354,9 @@ window.ankimode = {};
         // Add the Anki Mode button.
         $('head').append('<style>#anki-mode.anki-active {color:#ff0; opacity:1.0;} #anki-mode { color:#fff;}</style>');
         if (settings.ankimode_enabled) {
-            $('.character-header__menu-navigation').append('<a id="anki-mode" href="#" class="anki-active"><i class="fa fa-star" title="Anki Mode - This allows you to turn on or off anki mode."></i></a>');
+            $('.character-header__menu-navigation').append('<a id="anki-mode" href="#" class="anki-active"><svg class="wk-icon wk-icon--star" title="Anki Mode - This allows you to turn on or off anki mode." viewBox="0 0 500 500" aria-hidden="true"><use href="#wk-icon__star"></use></svg></a>');
         } else {
-            $('.character-header__menu-navigation').append('<a id="anki-mode" href="#"><i class="fa fa-star" title="Anki Mode - This allows you to turn on or off anki mode."></i></a>');
+            $('.character-header__menu-navigation').append('<a id="anki-mode" href="#"><svg class="wk-icon wk-icon--star" title="Anki Mode - This allows you to turn on or off anki mode." viewBox="0 0 500 500" aria-hidden="true"><use href="#wk-icon__star"></use></svg></a>');
         }
         $('#anki-mode').on('click', ankimode_clicked);
 
