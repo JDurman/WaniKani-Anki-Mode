@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Wanikani Anki Mode
 // @namespace    wkankimode
-// @version      3.0.8
+// @version      3.0.10
 // @description  Anki mode for Wanikani; DoubleCheck 3.0 Support;
 // @author       JDurman
 // @match       https://www.wanikani.com/*
@@ -336,9 +336,7 @@ window.ankimode = {};
             answer_checker = new AnswerChecker;
         }
         if (quiz_queue.hasSubjectIdsWithSRSTarget) {
-            srs_map = new Map(JSON.parse(quiz_queue.subjectIdsWithSRSTarget.textContent));
-            let SRSManager = (await importShim('controllers/quiz_queue/srs_manager')).default;
-            srs_mgr = new SRSManager(srs_map);
+            srs_mgr = quiz_queue.quizQueue.srsManager;
         } else {
             srs_mgr = undefined;
         }
