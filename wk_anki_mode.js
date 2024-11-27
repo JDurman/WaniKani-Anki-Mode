@@ -584,31 +584,22 @@ window.ankimode = {};
             var currentItem = getCurrentItem();
             var questionType = getQuestionType();
             if (questionType === "meaning") {
-                var answer = currentItem.meanings.join(", ");
+                var answer = currentItem.meanings.map(m => m.text).join(", ");
                 let synonyms = quiz_input.quizUserSynonymsOutlet.synonymsForSubjectId(getCurrentItem().id);
                 if (synonyms && synonyms.length) {
                     answer += " (" + synonyms.join(", ") + ")";
                 }
 
-                firstCorrectAnswer = currentItem.meanings[0];
+                firstCorrectAnswer = currentItem.meanings[0].text;
                 $("#user-response,#WKANKIMODE_answer_input").val(answer);
             } else { //READING QUESTION
                 var i = 0;
                 var singleAnswer = "";
                 var fullAnswer = "";
-                if (currentItem.type == "Vocabulary") {
-                    singleAnswer += currentItem.readings[0].reading;
-                    fullAnswer = currentItem.readings.map(x => x.reading).join(", ");
-                } else if (currentItem.primary_reading_type == 'kunyomi') {
-                    singleAnswer += currentItem.kunyomi[0];
-                    fullAnswer = currentItem.kunyomi.join(", ");
-                } else if (currentItem.primary_reading_type == 'nanori') {
-                    singleAnswer += currentItem.nanori[0];
-                    fullAnswer = currentItem.nanori.join(", ");
-                } else {
-                    singleAnswer += currentItem.onyomi[0];
-                    fullAnswer = currentItem.onyomi.join(", ");
-                }
+
+                singleAnswer += currentItem.readings[0].text;
+                fullAnswer = currentItem.readings.map(x => x.text).join(", ");
+
                 firstCorrectAnswer = singleAnswer;
                 $("#user-response").val(singleAnswer);
 
