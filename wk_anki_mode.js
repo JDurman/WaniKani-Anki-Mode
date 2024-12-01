@@ -584,7 +584,10 @@ window.ankimode = {};
             var currentItem = getCurrentItem();
             var questionType = getQuestionType();
             if (questionType === "meaning") {
-                var answer = currentItem.meanings.map(m => m.text).join(", ");
+                var answer = currentItem.meanings
+                   .filter(m => m.kind === 'primary' || m.kind === 'alternative')
+                   .map(m => m.text)
+                   .join(", ");
                 let synonyms = quiz_input.quizUserSynonymsOutlet.synonymsForSubjectId(getCurrentItem().id);
                 if (synonyms && synonyms.length) {
                     answer += " (" + synonyms.join(", ") + ")";
